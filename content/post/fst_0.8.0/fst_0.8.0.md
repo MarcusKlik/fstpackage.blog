@@ -95,7 +95,7 @@ This 'on-disk subsetting' takes less memory, because memory is only allocated fo
 
 The graph below depicts the relation between the read time and the amount of rows selected from a 50 million row _fst_ file. As you can see, the average read time grows with the amount of rows selected. Reading all 50 million rows takes around 0.45 seconds, the value reported in the table in the introduction.
 
-<img src="/img/fst_0.8.0//img/fst_hashing//img/fst_hashing//img/fst_hashing//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression/img/fig-unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="50%" />
+<img src="/img/fst_0.8.0/img/fig-unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="50%" />
 
 # Some basic speed measurements
 
@@ -154,10 +154,10 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.2907362
+## [1] 0.3048517
 ```
 
-So the file size is about 29 percent of the original data frame size. This reduced file size is the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
+So the file size is about 30 percent of the original data frame size. This reduced file size is the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
 
 
 # Multi-threading
@@ -173,7 +173,7 @@ With more threads _fst_ can do more background processing such as compression. O
 
 The graph below shows measurements of the read- and write speeds for various 'thread settings' and number of rows. Sample sizes of 10 million and 50 million rows were used.
 
-![plot of chunk unnamed-chunk-15](/img/fst_0.8.0//img/fst_hashing//img/fst_hashing//img/fst_hashing//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression/img/fig-unnamed-chunk-15-1.png)
+![plot of chunk unnamed-chunk-15](/img/fst_0.8.0/img/fig-unnamed-chunk-15-1.png)
 
 
 
@@ -183,7 +183,28 @@ The effects of multi-threading are quite obvious and _fst_ does well in both rea
 
 The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files. Below is a graph comparing _fread_ / _fwrite_ to it's counterparts _read.csv2_ / _write.csv2_ (package _utils_) and _write\_csv_ / _read\_csv_ (package _readr_):
 
-![plot of chunk unnamed-chunk-17](/img/fst_0.8.0//img/fst_hashing//img/fst_hashing//img/fst_hashing//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression/img/fig-unnamed-chunk-17-1.png)
+
+```
+## Error in normalizePath(path.expand(path), winslash, mustWork): path[1]="csv_bench.fst": The system cannot find the file specified
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'csv_bench' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'csv_bench' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'csv_bench' not found
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'csv_bench' not found
+```
+
+![plot of chunk unnamed-chunk-17](/img/fst_0.8.0/img/fig-unnamed-chunk-17-1.png)
 
 The _data.table_ package is an order of magnitude faster than the competition! Even when only a single thread is used, the speed difference is quite large. This is all due to the excellent work of the people working on the _data.table_ package. The parallel implementations of _fwrite_ and _fread_ were created recently and they are clearly very fast, an impressive piece of work!
 
@@ -211,7 +232,7 @@ How does that work? Suppose a disk has an extremely high speed, then any amount 
 
 To shift the balance, the _fst_ package uses multi-threading to compress data 'in the background', so while the disk is busy writing data. Using that setup, it's possible to saturate your disk and still compress data, effectively increasing the observed write (and read) speed. The figure below shows how compression impacts the performance of reading and writing data to disk.
 
-![plot of chunk unnamed-chunk-18](/img/fst_0.8.0//img/fst_hashing//img/fst_hashing//img/fst_hashing//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression/img/fig-unnamed-chunk-18-1.png)
+![plot of chunk unnamed-chunk-18](/img/fst_0.8.0/img/fig-unnamed-chunk-18-1.png)
 
 These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20 physical cores. With more cores, it's easier to see the scaling effects. The horizontal groups in the figure represent the different amount of threads used (4, 8, 10 and 20). Vertically we have the read and write speeds. The colors represent various compression settings in the range of 0 to 100 (so not the number of threads like in the previous graph). Compression helps a lot to increase the write speed. If enough cores are used, the background compression can keep up with the SSD and the total write speed will increase accordingly (**less data == more speed**). The same could be expected to be true for the read speed. The effects seem to be minimal however and some more thinking is required to bring the read speed at the same level as the write speed (perhaps we need parallel file connections, larger read blocks or different multi-threading logic? [ideas are very welcome](https://github.com/fstpackage/fst/issues) :-)).
 
@@ -224,109 +245,22 @@ The _fst_ package uses the excellent [LZ4](http://lz4.github.io/lz4/) compressor
 All compression settings in _fst_ are set as a value between 0 and 100 ('a percentage'). That percentage is translated into a mix of compression settings for each (16kB) data block. This mix is optimized (or will be :-)) for that particular data type. For example, at a compression setting of 30, data blocks in an integer column are a mix of 40 percent uncompressed blocks and 60 percent blocks compressed with LZ4 + a byte shuffle. The byte shuffle works because we are dealing with an integer column. So we use information about the specific column _type_ to enhance the compression. This is a unique feature of _fst_ that has a huge positive impact on performance.
 
 
-# More new features in fst v0.8.0
+# More on fst's features
+
+If you're interested in learning more on some of the new features of _fst_, you can also take a look at these posts:
+
+* [Multi-threaded compression using LZ4 and ZSTD](/2017/12/fst_compression/)
+* [Multi-threaded hashing with xxHash](/2017/12/fst_hashing/)
+ 
+ 
+# Final note
+
+With CRAN release v0.8.0, the _fst_ format is stable and backwards compatible. That means that all _fst_ files generated with _fst_ package v0.8.0 or later can be read by future versions of the package.
+
 
 ## Separate core library
 
 With this new release, the core C++ code of _fst_ is completely separated from the _fst_ 'R API' (the C++ core library is now called [_fstlib_](https://github.com/fstpackage/fstlib)). Having a separate C++ library opens up the way for other languages to implement the _fst_ format (e.g. Python, Julia, C++).
-
-## Multi-threaded access to LZ4 and ZSTD compressors
-
-The LZ4 and ZSTD compressors can now be used directly using methods _compress\_fst_ and _decompress\_fst_. For example, to compress the csv file  _survey\_results\_public.csv_ [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) (with data about StackOverflow users), you can use:
-
-
-
-
-```r
-# file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017
-sample_file <- "large/survey_results_public.csv"
-raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte contents 
-
-# compress bytes with ZSTD
-compressed_vec <- compress_fst(raw_vec, "ZSTD", 10)
-
-length(compressed_vec) / length(raw_vec)  # compression ratio
-```
-
-```
-## [1] 0.1194816
-```
-
-This compresses the contents of the _survey\_results\_public.csv_ file to about 12 percent of the original size. You can decompress again with:
-
-
-```r
-raw_vec_decompressed <- decompress_fst(compressed_vec)
-```
-
-What's special about the fst implementation is that it's a fully multi-threaded implementation of the underlying compression algorithms, boosting the compression and decompression speeds:
-
-
-
-
-
-```r
-# compress with LZ4 on maximum compression setting
-compress_time <- microbenchmark(
-  compress_fst(raw_vec, "ZSTD", 10),
-  times = 10
-)
-
-# decompress again
-decompress_time <- microbenchmark(
-  decompress_fst(compressed_vec),
-  times = 10
-)
-
-cat("Compress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(compress_time$time),
-    "Decompress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(decompress_time$time))
-```
-
-
-```
-## Compress:  1509.439 Decompress:  2908.441
-```
-
-The measurement was done using 8 threads. Just like with _write\_fst_, compression is done on multiple threads, but there is no optimization for specific types (because the raw input vector can contain any type of data).
-
-## Multi-threaded hashing
-
-The last feature that I would like to mention briefly is the multi-threaded hashing algorithm that has been added to fst v0.8.0:
-
-
-```r
-hash_fst(raw_vec)
-```
-
-```
-## [1]  1853499107 -1914678989
-```
-
-The return value is a length two integer vector because the hashing algorithm is actually a 64-bit hashing algorithm. Based on the already fast [xxHash](http://cyan4973.github.io/xxHash/) algorithm, the speed of the multi-threaded hash implementation in _fst_ is pretty extreme:
-
-
-```r
-threads_fst(8)
-
-hash_timing <- microbenchmark(
-  hash_fst(raw_vec),
-  times = 1000
-)
-
-# hashing speed (GB/s)
-as.numeric(object.size(raw_vec)) / median(hash_timing$time)
-```
-
-
-```r
-as.numeric(object.size(raw_vec)) / median(hash_timings$hash_timing$time)
-```
-
-```
-## [1] 11.55543
-```
-
-That's a hashing speed of more than 11 GB/s !
 
 # Format stable and backwards compatible
 
@@ -336,7 +270,6 @@ With CRAN release v0.8.0, the format is stable and backwards compatible. That me
 
 Many new features are planned for _fst_ thanks to a lot of requests and idea's from the community (much obliged!), a few examples:
 
-* multi-threaded (de-)serialization of _character_ columns
 * _data.table_ interface
 * row bind data to an existing _fst_ file
 * add columns to an existing _fst_ file
@@ -344,6 +277,7 @@ Many new features are planned for _fst_ thanks to a lot of requests and idea's f
 * hashing of data blocks for added security
 * encryption
 * fast sampling of a _fst_ file
+* multi-threaded (de-)serialization of _character_ columns
 * _dplyr_ interface
 
 Thanks for making it to the end of my post (no small task) and for your interest in using _fst_!
