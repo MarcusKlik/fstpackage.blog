@@ -87,7 +87,9 @@ CheckBaseURL()
 
 
 # currently active blog to compile
-blog_name <- "fst_0.8.0"
+# blog_name <- "fst_0.8.0"
+blog_name <- "fst_compression"
+# blog_name <- "fst_hashing"
 
 
 blog <- paste0(blog_name, ".Rmd")
@@ -116,8 +118,9 @@ setwd(blog_name)
 knitr::knit(blog, paste0("../../content/post/",  paste0(blog_name, "/", blog_name, ".md")))
 
 
-# copy generated images
+# copy generated images and media
 file.copy("img", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
+file.copy("media", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
 
 setwd("..")
 

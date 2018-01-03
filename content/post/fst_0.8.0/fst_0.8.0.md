@@ -39,7 +39,7 @@ For a few years now, solid state disks (SSD's) have been getting larger in capac
 
 The _fst_ package aims to provide a solution for storing data frames on modern SSD's at the highest possible speed. It uses multiple threads and compression to achieve speeds that can top even the fastest consumer SSD's that are currently available. At the same time, the _fst_ file format was designed as a random access format from the ground up. This offers a lot of flexibility and allows reading subsets of data frames (both columns and rows) at high speeds.
 
-Below you can see just how fast _fst_ is. The benchmark was performed on a laptop with a mid range CPU (i7 4710HQ @2.5 GHz) and a reasonably fast (NVME) SSD (M.2 Samsung SM951). The datasets used for measurement were generated on the fly and consists of various column types (as defined below). The number of threads (were appropriate) was set to 8.
+Below you can see just how fast _fst_ is. The benchmark was performed on a laptop with a mid range CPU (i7 4710HQ @2.5 GHz) and a reasonably fast (NVME) SSD (M.2 Samsung SM951). The datasets used for measurement were generated on the fly and consists of various column types (the dataset is defined below). The number of threads (were appropriate) was set to 8.
 
 <br>
 
@@ -91,11 +91,11 @@ df_read <- read_fst("sampleset.fst", c("A", "B"), 1000, 2000)
 
 This reads rows 1000 to 2000 from columns _A_ and _B_ without actually touching any other data in the stored file. That means that a subset can be read from file **without reading the complete file first**. This is different from, say, _readRDS_ or _read\_feather_ where you have to read the complete file or column before you can make a subset.
 
-This 'on-disk subsetting' takes less memory, because memory is only allocated for columns and rows that are actually read from disk. So even with a _fst_ file that is much larger than the amount of RAM in your computer, you can still read a subset without running out of memory!
+This 'on-disk subsetting' takes less memory, because memory is only allocated for columns and rows that are actually read from disk. Even with a _fst_ file that is much larger than the amount of RAM in your computer, you can still read a subset without running out of memory!
 
 The graph below depicts the relation between the read time and the amount of rows selected from a 50 million row _fst_ file. As you can see, the average read time grows with the amount of rows selected. Reading all 50 million rows takes around 0.45 seconds, the value reported in the table in the introduction.
 
-<img src="/img/fst_0.8.0/img/fig-unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="50%" />
+<img src="/img/fst_0.8.0//img/fst_hashing//img/fst_hashing//img/fst_hashing//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression/img/fig-unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="50%" />
 
 # Some basic speed measurements
 
@@ -145,7 +145,7 @@ as.numeric(object.size(df)) / write_speed$time
 ## [1] 3.55976
 ```
 
-So how can the measured write speed (about 3.5 GB/s) be so much higher than the maximum write speed of the SSD used (about 1.2 GB/s)? The explanation is that the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame (and **less data == more speed**):
+But wait, how can the measured write speed (about 3.5 GB/s) be so much higher than the maximum write speed of the SSD used (about 1.2 GB/s)? That's because the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame (and **less data == more speed**):
 
 
 ```r
@@ -154,7 +154,7 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.2996764
+## [1] 0.2907362
 ```
 
 So the file size is about 29 percent of the original data frame size. This reduced file size is the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
@@ -162,7 +162,7 @@ So the file size is about 29 percent of the original data frame size. This reduc
 
 # Multi-threading
 
-Like _data.table_, the _fst_ package uses multiple threads to read and write data. So how does the number of threads affect the performance? You can tune multithreading with:
+Like _data.table_, the _fst_ package uses multiple threads to read and write data. So how does the number of threads affect the performance? You can tune multi-threading with:
 
 
 ```r
@@ -173,38 +173,45 @@ With more threads _fst_ can do more background processing such as compression. O
 
 The graph below shows measurements of the read- and write speeds for various 'thread settings' and number of rows. Sample sizes of 10 million and 50 million rows were used.
 
-![plot of chunk unnamed-chunk-15](/img/fst_0.8.0/img/fig-unnamed-chunk-15-1.png)
+![plot of chunk unnamed-chunk-15](/img/fst_0.8.0//img/fst_hashing//img/fst_hashing//img/fst_hashing//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression/img/fig-unnamed-chunk-15-1.png)
 
 
 
-The effects of multi-threading are quite obvious and _fst_ does well in both reading and writing (note that the bar corresponding to _Threads == 1_ is basically _fst_ before version 0.8.0). A top write speed of 3.6 GB/s was measured using 7 threads. My laptop only has 4 physical cores, but increasing beyond 4 threads still increases performance (apparently hyperthreading does work in some cases :-)).
+The effects of multi-threading are quite obvious and _fst_ does well in both reading and writing (note that the bar corresponding to _Threads == 1_ is basically _fst_ before version 0.8.0). A top write speed of 3.6 GB/s was measured using 7 threads. My laptop only has 4 physical cores, but increasing beyond 4 threads still increases performance (hyper threading does work in some cases :-)).
 
 > The measured read speeds are lower than the write speeds although the SSD has a higher read throughput according to the specifications. This probably means that there is room for some more improvements on the read speeds when the code is further optimized.
 
-The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files:
+The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files. Below is a graph comparing _fread_ / _fwrite_ to it's counterparts _read.csv2_ / _write.csv2_ (package _utils_) and _write\_csv_ / _read\_csv_ (package _readr_):
 
+![plot of chunk unnamed-chunk-17](/img/fst_0.8.0//img/fst_hashing//img/fst_hashing//img/fst_hashing//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression/img/fig-unnamed-chunk-17-1.png)
 
-```
-## Error: <text>:4:1: unexpected '['
-## 3: 
-## 4: [
-##    ^
-```
+The _data.table_ package is an order of magnitude faster than the competition! Even when only a single thread is used, the speed difference is quite large. This is all due to the excellent work of the people working on the _data.table_ package. The parallel implementations of _fwrite_ and _fread_ were created recently and they are clearly very fast, an impressive piece of work!
 
+# When to use _fst_ and when not
 
-Next to _fst_ there is another clear winner in this graph, and that is the _data.table_ package with it's methods _fwrite_ and _fread_. It stands out because the _csv_ file  format is not a binary format but a human-readable text format! Normally, binary formats would be much faster than the _csv_ format, because _csv_ takes more space on disk, is row based, uncompressed and needs to be parsed into a computer-native format to have any meaning. So any serializer that's working on _csv_ has an enormous disadvantage as compared to binary formats. Yet, the results show that _data.table_ is on par with binary formats and when more threads are used, it can even be faster. This is all due to the excellent work of the people working on the _data.table_ package. They recently created parallel implementations of _fwrite_ and _fread_ and they are very fast, an impressive piece of work!
+The _csv_ format is a common data exchange format that is widely supported by consumer, business, and scientific applications. It's human-readable, can be edited with a simple text editor and can be used cross-platform and cross-language. And if you use the _data.table_ package to read and write your _csv_, it's fast as well.
+
+Despite these obvious advantages, there are some things you can't do with _csv_ but you can by using the _fst_ (binary) format:
+
+* A _csv_ file can't be compressed, so in general it will take more disk space than a _fst_ file.
+* it's hard to read a single column of data without parsing the rest of the information in the rows (because the _csv_ format is _row-oriented_). By contrast, the _fst_ format is column-oriented (as is the _feather_ format).
+* Reading a selection of rows from a _csv_ requires searching the file for line-ends. So you can't have true random-access to a _csv_ file. In _fst_, meta data is stored that allows for the exact localization of any element of a dataset.
+* You can't add columns to a _csv_ file without re-writing the entire file.
+* You can't store information from memory to _csv_ (and vice versa) without first (de-)parsing to human-readable format. On other words, no zero-copy storage is possible. The _fst_ format is a zero-copy format and in general no parsing is required to transfer data to and from memory.
+
+Because of these reasons, storing your data with _fst_ will be faster and more compact than storing your data in a _csv_ file. But whether you are best of using a _csv_ or _fst_ file depends on your specific use case. _csv_ is king especially for small datasets where the serialization performance is already adequate. But if you need more speed, more compact files or random access, _fst_ can help you with that.
 
 # How compression helps to increase performance
 
-The maximum read- and write speeds of your computer's (solid state-) disk are a given. Any read or write operations to and from disk are bound by those maximum speeds, there's not much you can do about that (except buy a faster disk).
+The maximum read- and write speeds of a (solid state-) disk are a given. Any read or write operations to and from disk are bound by those maximum speeds, there's not much you can do about that (except buy a faster disk).
 
 However, the amount of data that goes back and forth between the disk and your computer memory can be reduced by using compression. If you compress your data with, let's say, a factor of two, the disk will probably spent about half the time on reading or writing that data (**less data == more speed**). The downside is that the compression itself will also take CPU time, so there is a trade-off there that depends on the speed of the disk and the CPU speed.
 
 How does that work? Suppose a disk has an extremely high speed, then any amount of compression will lower the total speed of writing data to that disk. On the other hand, when the disk has a very low speed (say a network drive), any amount of compression would actually increase the total speed. Most setups will have maximum performance somewhere in between.
 
-To shift the balance, the _fst_ package uses multithreading to compress data 'in the background', so while the disk is busy writing data. Using that setup, it's possible to saturate your disk and still compress data, effectively increasing the observed write (and read) speed. The figure below shows how compression impacts the performance of reading and writing data to disk.
+To shift the balance, the _fst_ package uses multi-threading to compress data 'in the background', so while the disk is busy writing data. Using that setup, it's possible to saturate your disk and still compress data, effectively increasing the observed write (and read) speed. The figure below shows how compression impacts the performance of reading and writing data to disk.
 
-![plot of chunk unnamed-chunk-18](/img/fst_0.8.0/img/fig-unnamed-chunk-18-1.png)
+![plot of chunk unnamed-chunk-18](/img/fst_0.8.0//img/fst_hashing//img/fst_hashing//img/fst_hashing//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression//img/fst_compression/img/fig-unnamed-chunk-18-1.png)
 
 These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20 physical cores. With more cores, it's easier to see the scaling effects. The horizontal groups in the figure represent the different amount of threads used (4, 8, 10 and 20). Vertically we have the read and write speeds. The colors represent various compression settings in the range of 0 to 100 (so not the number of threads like in the previous graph). Compression helps a lot to increase the write speed. If enough cores are used, the background compression can keep up with the SSD and the total write speed will increase accordingly (**less data == more speed**). The same could be expected to be true for the read speed. The effects seem to be minimal however and some more thinking is required to bring the read speed at the same level as the write speed (perhaps we need parallel file connections, larger read blocks or different multi-threading logic? [ideas are very welcome](https://github.com/fstpackage/fst/issues) :-)).
 
