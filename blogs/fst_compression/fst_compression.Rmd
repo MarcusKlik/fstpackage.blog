@@ -1,20 +1,20 @@
 ---
-title: "Multi-threaded compression using LZ4 and ZSTD"
+title: "Multi-threaded compression from R using LZ4 and ZSTD"
 author: "Mark Klik"
 date: '2017-12-16'
-coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg
+coverImage: /img/fst_compression/media/space_coast.jpg
 editor_options:
   chunk_output_type: console
 metaAlignment: center
 slug: fst_compression
 tags:
 - fst package
-- hashing
+- compression
 thumbnailImage: /img/fst_compression/media/compression.jpg
 thumbnailImagePosition: left
 categories:
 - R
-- hashing
+- compression
 - fst package
 ---
 
