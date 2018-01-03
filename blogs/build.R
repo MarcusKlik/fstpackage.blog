@@ -24,6 +24,7 @@ CheckBaseURL <- function() {
   
   # Get branch of head
   current_branch <- branch_table[regexpr("(HEAD)", Head) != -1, branch_name(Head)]
+  current_branch <- current_branch[current_branch != "HEAD"]
 
   # Get config.toml file
   toml <- readLines("../config.toml")
