@@ -1,7 +1,7 @@
 ---
 title: "Lightning fast serialization of datasets using the fst package"
 author: "Mark Klik"
-date: '2017-12-16'
+date: '2017-12-12'
 coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg
 editor_options:
   chunk_output_type: console
@@ -28,8 +28,7 @@ Version 0.8.0 of R's _fst_ package has been released to CRAN. The package is now
 
 <!--more-->
 
-This post covers some of the enhancements that have been made to _fst_ in the latest release and measures the performance against the serialization methods offered by packages _feather_ and by _base R_ itself. A parallel is drawn with the multi-threading enhancements recently added to _data.table_'s methods _fread_ and _fwrite_ for working with  _csv_ files. Also, some words on how and when to best use the _fst_ binary format to benefit your workflow and speed up your calculations (and when not).
-
+This post covers some of the enhancements that have been made to _fst_ and introduces the new in-memory compression and hashing features. Some benchmarks are shown comparing performance against data frame serialization methods offered by packages _data.table_, _feather_ and by _base R_ itself.
 
 <!-- toc -->
 
@@ -39,30 +38,29 @@ For a few years now, solid state disks (SSD's) have been getting larger in capac
 
 The _fst_ package aims to provide a solution for storing data frames on modern SSD's at the highest possible speed. It uses multiple threads and compression to achieve speeds that can top even the fastest consumer SSD's that are currently available. At the same time, the _fst_ file format was designed as a random access format from the ground up. This offers a lot of flexibility and allows reading subsets of data frames (both columns and rows) at high speeds.
 
-Below you can see just how fast _fst_ is. The benchmark was performed on a laptop with a mid range CPU (i7 4710HQ @2.5 GHz) and a reasonably fast (NVME) SSD (M.2 Samsung SM951). The datasets used for measurement were generated on the fly and consists of various column types (as defined below). The number of threads (were appropriate) was set to 8.
-
-<br>
+Below you can see just how fast _fst_ is. The benchmark was performed on a laptop with a mid range CPU (i7 4710HQ @2.5 GHz) and a reasonably fast SSD (M.2 Samsung SM951). The datasets used for measurement were generated on the fly and consist of various column types (the dataset is defined below). The number of threads (were appropriate) was set to 8.
 
 
-|Method        |Format  |Time (sec) |Size (MB) |File Size (MB) |Speed (MB/s) |N       |
-|:-------------|:-------|:----------|:---------|:--------------|:------------|:-------|
-|readRDS       |bin     |1.57       |1000      |1000           |633          |112     |
-|saveRDS       |bin     |2.04       |1000      |1000           |489          |112     |
-|read_feather  |bin     |3.95       |1000      |812            |253          |112     |
-|write_feather |bin     |1.82       |1000      |812            |549          |112     |
-|**read_fst**  |**bin** |**0.45**   |**1000**  |**303**        |**2216**     |**142** |
-|**write_fst** |**bin** |**0.28**   |**1000**  |**303**        |**3559**     |**142** |
-_Table 1: read and write performance of fst, feather and baseR binary formats_
+|Method        |Format  |Time (ms) |Size (MB) |File Size (MB) |Speed (MB/s) |N       |
+|:-------------|:-------|:---------|:---------|:--------------|:------------|:-------|
+|readRDS       |bin     |1577      |1000      |1000           |633          |112     |
+|saveRDS       |bin     |2042      |1000      |1000           |489          |112     |
+|fread         |csv     |2800      |1200      |1038           |428          |117     |
+|fwrite        |csv     |2537      |1000      |1038           |394          |117     |
+|read_feather  |bin     |3950      |1000      |812            |253          |112     |
+|write_feather |bin     |1820      |1000      |812            |549          |112     |
+|**read_fst**  |**bin** |**451**   |**1000**  |**303**        |**2216**     |**142** |
+|**write_fst** |**bin** |**280**   |**1000**  |**303**        |**3559**     |**142** |
 
-The table compares method _write\_fst_ to it's counterparts _write\_feather_ and _saveRDS_. Method _read\_fst_ is compared to it's counterparts _read\_feather_ and _readRDS_. For _saveRDS_, the uncompressed mode was selected because the compressed mode is very slow (a few MB/s only).
-
-As can be seen, a write speed of more than 3.5 GB/s was measured for _write\_fst_. That speed is even higher than the speed reported in the drive's specifications! 
+In the table, method _write\_fst_ is compared to it's counterparts _write\_feather_,  _fwrite_ and _saveRDS_. Method _read\_fst_ is compared to it's counterparts _read\_feather_, _fread_ and _readRDS_. For _saveRDS_, the uncompressed mode was selected because the compressed mode is very slow (a few MB/s only).
 
 After introducing some of the basic features of _fst_, we will get back to these benchmarks and take a look at how the package uses a combination of multi-threading and compression to effectively boost the performance of data frame serialization.
 
+
 # Put _fst_ to work
 
-The package interface for serialization of data frames is quite straightforward. To write a data frame to disk:
+The package interface for serialization of data frames is quite straightforward.
+To write a data frame to disk:
 
 
 ```r
@@ -93,13 +91,13 @@ This reads rows 1000 to 2000 from columns _A_ and _B_ without actually touching 
 
 This 'on-disk subsetting' takes less memory, because memory is only allocated for columns and rows that are actually read from disk. So even with a _fst_ file that is much larger than the amount of RAM in your computer, you can still read a subset without running out of memory!
 
-The graph below depicts the relation between the read time and the amount of rows selected from a 50 million row _fst_ file. As you can see, the average read time grows with the amount of rows selected. Reading all 50 million rows takes around 0.45 seconds, the value reported in the table in the introduction.
+The graph below depicts the relation between the read time and the amount of rows selected from a 50 million row _fst_ file. As you can see, the average read time grows with the amount of rows selected. Reading all 50 million rows takes around 450 ms, comparable to the value reported in the table in the introduction (451 ms).
 
 <img src="/img/fst_0.8.0/img/fig-unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="50%" />
 
 # Some basic speed measurements
 
-The read and write speed of _fst_ depends on the compression setting and the number of threads used. To get an idea about these dependencies we generate a dataset containing various column types and do some speed measurements:
+The read and write speed of _fst_ depends on the compression setting and the number of threads used. To get an idea about these dependencies we do some measurements on our previously used dataset that can be generated with:
 
 
 ```r
@@ -122,7 +120,7 @@ df <-
   )
 ```
 
-This dataset was also used to obtain the benchmark results reported above. To get accurate timings for writing to disk we use the _microbenchmark_ package
+To get accurate timings for writing the frame to disk we use the _microbenchmark_ package
 
 
 
@@ -145,7 +143,7 @@ as.numeric(object.size(df)) / write_speed$time
 ## [1] 3.55976
 ```
 
-So how can the measured write speed (about 3.5 GB/s) be so much higher than the maximum write speed of the SSD used (about 1.2 GB/s)? The explanation is that the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame (and **less data == more speed**):
+the write speed is about 3.5 GB/s. That's much higher than the maximum write speed of the SSD in my laptop, which is about 1.1 GB/s according to the specs. Following the compression argument above, the explanation is that the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame (and **less data == more speed**):
 
 
 ```r
@@ -154,7 +152,7 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.3080469
+## [1] 0.3021018
 ```
 
 So the file size is about 30 percent of the original data frame size. This reduced file size is the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
@@ -171,28 +169,25 @@ threads_fst(8)  # allow fst to use 8 threads
 
 With more threads _fst_ can do more background processing such as compression. Obviously, setting more threads than there are (logical) cores available in your computer won't help you (in most cases).
 
-The graph below shows measurements of the read- and write speeds for various 'thread settings' and number of rows. Sample sizes of 10 million and 50 million rows were used.
+The graph below shows measurements of the read- and write speeds for various 'thread settings' and number of table rows. Sample sizes of 10 million and 50 million rows were used.
 
 ![plot of chunk unnamed-chunk-15](/img/fst_0.8.0/img/fig-unnamed-chunk-15-1.png)
 
 
 
-The effects of multi-threading are quite obvious and _fst_ does well in both reading and writing (note that the bar corresponding to _Threads == 1_ is basically _fst_ before version 0.8.0). A top write speed of 3.6 GB/s was measured using 7 threads. My laptop only has 4 physical cores, but increasing beyond 4 threads still increases performance (apparently hyperthreading does work in some cases :-)).
+The effects of multi-threading are quite obvious and _fst_ does well in both reading and writing (note that the single threaded bar is basically _fst_ before version 0.8.0). A top write speed of 3.6 GB/s was measured using 7 threads. My laptop only has 4 physical cores, but increasing beyond 4 threads still increases performance (apparently hyperthreading does work :-)).
 
 > The measured read speeds are lower than the write speeds although the SSD has a higher read throughput according to the specifications. This probably means that there is room for some more improvements on the read speeds when the code is further optimized.
 
-The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files:
-
-
-```
-## Error: <text>:4:1: unexpected '['
-## 3: 
-## 4: [
-##    ^
-```
-
-
 Next to _fst_ there is another clear winner in this graph, and that is the _data.table_ package with it's methods _fwrite_ and _fread_. It stands out because the _csv_ file  format is not a binary format but a human-readable text format! Normally, binary formats would be much faster than the _csv_ format, because _csv_ takes more space on disk, is row based, uncompressed and needs to be parsed into a computer-native format to have any meaning. So any serializer that's working on _csv_ has an enormous disadvantage as compared to binary formats. Yet, the results show that _data.table_ is on par with binary formats and when more threads are used, it can even be faster. This is all due to the excellent work of the people working on the _data.table_ package. They recently created parallel implementations of _fwrite_ and _fread_ and they are very fast, an impressive piece of work!
+
+## Character columns
+
+Perhaps you've noticed that there is no _character_ column in the test data (only a factor column). That's because serialization of the character column type is still done single-threaded in _fst_. 
+
+![plot of chunk unnamed-chunk-17](/img/fst_0.8.0/img/fig-unnamed-chunk-17-1.png)
+
+With a maximum write speed of 232 (and read even slower), the current low speed of character columns would have completely dominated the benchmark. Excluding is a little unfair to _data.table_ however, because _character_ columns are just the type of columns where _data.table_ shines brightest (hopefully including this graph will make up for that a little :-)). Obviously, a parallel version of the _character_ serialization code is high on _fst_'s feature list.
 
 # How compression helps to increase performance
 
