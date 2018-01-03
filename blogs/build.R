@@ -38,7 +38,7 @@ CheckBaseURL <- function() {
   disqusLine <- toml[disqusLines[which(substr(toml[disqusLines], 1, 1) != "#")]]
 
   if (current_branch == "develop") {
-    if (regexpr("https://peaceful-kirch-6b7d79.netlify.com/", baseLine, fixed = TRUE) == -1) {
+    if (regexpr("https://mystifying-dubinsky-8d3673.netlify.com/", baseLine, fixed = TRUE) == -1) {
       stop("Wrong baseURL for this branch!")
     }
       
@@ -132,6 +132,6 @@ for (md_file in md_files) {
 }
 
 
-blogdown::serve_site()
+# blogdown::serve_site()
 
 # blogdown::hugo_version()

@@ -14,7 +14,7 @@
 
 ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$", "\\.fst$", "\\.R$"]
 # baseURL = "http://blog.fstpackage.org/"
-baseURL="https://peaceful-kirch-6b7d79.netlify.com/"
+baseURL="https://mystifying-dubinsky-8d3673.netlify.com/"
 languageCode = "en-us"
 defaultContentLanguage = "en-us"
 title = "Blog - Data Science and the fst Package"
