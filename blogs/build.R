@@ -6,13 +6,13 @@ library(git2r)
 CheckBaseURL <- function() {
   # check for correct baseURL on current branch
   branches <- branches()
-  
+
   # get head of each known branch
-  branch_table <- data.table(Branch = names(branches),
-      Head = sapply(branches, function(branch) {
-      repo <- branch@repo
-      capture.output(print(head(repo)))
-    }))
+  branch_table <- data.table(
+    Branch = names(branches),
+    Head =   sapply(branches, function(branch) {
+        capture.output(print(branch))
+      }))
   
   # get branch name from each head
   branch_name <- function(x) {
@@ -23,8 +23,8 @@ CheckBaseURL <- function() {
   }
   
   # Get branch of head
-  current_branch <- branch_table[regexpr("HEAD$", Branch) != -1, branch_name(Head)]
-  
+  current_branch <- branch_table[regexpr("(HEAD)", Head) != -1, branch_name(Head)]
+
   # Get config.toml file
   toml <- readLines("../config.toml")
   
