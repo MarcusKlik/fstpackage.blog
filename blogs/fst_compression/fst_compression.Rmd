@@ -83,6 +83,8 @@ So the data in this file can be compressed to `r round(100 * length(compressed_v
 
 ## bring on the cores
 
+With more cores, you can do more parallel compression work. With a small benchmark we can show this dependency:
+
 ```{r, eval = FALSE}
 library(data.table)
 
@@ -95,8 +97,8 @@ for (level in 10 * 0:5) {
 
     cat(".")
     threads_fst(threads)
-    compress_time <- microbenchmark(compressed_vec <- compress_fst(raw_vec, "ZSTD", level), times = 2)
-    decompress_time <- microbenchmark(decompress_fst(compressed_vec), times = 2)
+    compress_time <- microbenchmark(compressed_vec <- compress_fst(raw_vec, "ZSTD", level), times = 10)
+    decompress_time <- microbenchmark(decompress_fst(compressed_vec), times = 10)
     
     bench <- rbindlist(list(bench, 
       data.table(
@@ -117,9 +119,21 @@ for (level in 10 * 0:5) {
 # saveRDS(bench, "comp_res.rds")  # smallest file
 ```
 
-The results are shown in the graph below:
+This creates a _data.table_ with compression and decompression benchmark results. We can display these results in a graph:
 
-```{r}
+```{r, eval = FALSE}
+library(ggplot2)
+
+bench[, Speed := 1e3 * object.size(raw_vec) / Time]
+bench[, Level := as.factor(Level)]
+
+ggplot(bench) +
+  geom_line(aes(Threads, Speed, colour = Level)) +
+  geom_point(aes(Threads, Speed, colour = Level)) +
+  facet_wrap(~Mode)
+```
+
+```{r, echo = FALSE}
 library(ggplot2)
 
 bench <- readRDS("comp_res.rds")
@@ -135,4 +149,4 @@ ggplot(bench) +
 
 ## Column compression in _fst_
 
-The measurement was done using `r fst::threads_fst()` threads. Just like with _write\_fst_, compression is done on multiple threads, but there is no optimization for specific types (because the raw input vector can contain any type of data).
+
