@@ -126,8 +126,13 @@ for (blog_name in blog_names) {
   
   
   # copy generated images and media
-  file.copy("img", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
-  file.copy("media", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
+  if (file.exists("img/")) {
+    file.copy("img", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
+  }
+  
+  if (file.exists("media/")) {
+    file.copy("media", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
+  }
   
   setwd("..")
   
