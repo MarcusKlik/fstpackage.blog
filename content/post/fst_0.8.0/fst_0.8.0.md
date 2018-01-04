@@ -154,7 +154,7 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.3048517
+## [1] 0.3082372
 ```
 
 So the file size is about 30 percent of the original data frame size. This reduced file size is the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
@@ -182,27 +182,6 @@ The effects of multi-threading are quite obvious and _fst_ does well in both rea
 > The measured read speeds are lower than the write speeds although the SSD has a higher read throughput according to the specifications. This probably means that there is room for some more improvements on the read speeds when the code is further optimized.
 
 The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files. Below is a graph comparing _fread_ / _fwrite_ to it's counterparts _read.csv2_ / _write.csv2_ (package _utils_) and _write\_csv_ / _read\_csv_ (package _readr_):
-
-
-```
-## Error in normalizePath(path.expand(path), winslash, mustWork): path[1]="csv_bench.fst": The system cannot find the file specified
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'csv_bench' not found
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'csv_bench' not found
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'csv_bench' not found
-```
-
-```
-## Error in eval(expr, envir, enclos): object 'csv_bench' not found
-```
 
 ![plot of chunk unnamed-chunk-17](/img/fst_0.8.0/img/fig-unnamed-chunk-17-1.png)
 

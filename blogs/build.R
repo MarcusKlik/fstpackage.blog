@@ -86,53 +86,57 @@ CheckBaseURL <- function() {
 CheckBaseURL()
 
 
-# currently active blog to compile
+# blogs to compile
+blog_names <- c("fst_0.8.0", "fst_compression", "fst_hashing")
+
 # blog_name <- "fst_0.8.0"
 # blog_name <- "fst_compression"
 blog_name <- "fst_hashing"
 
-
-blog <- paste0(blog_name, ".Rmd")
-post_dir <- paste0("../content/post/", blog_name)
-post_file <- paste0("../content/post/",  blog_name, "/", blog_name, ".md")
-
-# create an image subdirectory for the post
-if (!file.exists("../static/img")) {
-  dir.create("../static/img/")
+for (blog_name in blog_names) {
+  
+  blog <- paste0(blog_name, ".Rmd")
+  post_dir <- paste0("../content/post/", blog_name)
+  post_file <- paste0("../content/post/",  blog_name, "/", blog_name, ".md")
+  
+  # create an image subdirectory for the post
+  if (!file.exists("../static/img")) {
+    dir.create("../static/img/")
+  }
+  
+  img_dir <- paste0("../static/img/", blog_name)
+  if (!file.exists(img_dir)) {
+    dir.create(img_dir)
+  }
+  
+  # create blog dir if non-existing
+  if (!file.exists(post_dir)) {
+    dir.create(post_dir)
+  } else
+  {
+    file.remove(post_file)
+  }
+  
+  # compile from blog directory
+  setwd(blog_name)
+  
+  
+  # knit blog
+  knitr::knit(blog, paste0("../", post_file))
+  
+  
+  # copy generated images and media
+  file.copy("img", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
+  file.copy("media", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
+  
+  setwd("..")
+  
+  
+  # replace all image references with correct reference
+  lines <- readLines(post_file)
+  lines <- gsub("img/fig-", paste0("/img/", blog_name, "/img/fig-"), lines, fixed = TRUE)
+  writeLines(lines, post_file)
 }
-
-img_dir <- paste0("../static/img/", blog_name)
-if (!file.exists(img_dir)) {
-  dir.create(img_dir)
-}
-
-# create blog dir if non-existing
-if (!file.exists(post_dir)) {
-  dir.create(post_dir)
-} else
-{
-  file.remove(post_file)
-}
-
-# compile from blog directory
-setwd(blog_name)
-
-
-# knit blog
-knitr::knit(blog, paste0("../", post_file))
-
-
-# copy generated images and media
-file.copy("img", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
-file.copy("media", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
-
-setwd("..")
-
-
-# replace all image references with correct reference
-lines <- readLines(post_file)
-lines <- gsub("img/fig-", paste0("/img/", blog_name, "/img/fig-"), lines, fixed = TRUE)
-writeLines(lines, post_file)
 
 
 # blogdown::serve_site()
