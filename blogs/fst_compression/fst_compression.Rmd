@@ -149,4 +149,5 @@ ggplot(bench) +
 
 ## Column compression in _fst_
 
+Method _compress_fst_ feeds data directly to the LZ4 or ZSTD compressor. But when _fst_ compresses a column from an R _data.frame_, additional information is known about the data that has to be compressed. For example, when you compress a vector of _integer_ values, you already know that the data is organized in groups of 4 bytes (that's the in-memory representation of a single )
 
