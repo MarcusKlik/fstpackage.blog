@@ -87,11 +87,10 @@ CheckBaseURL()
 
 
 # blogs to compile
-blog_names <- c("fst_0.8.0", "fst_compression", "fst_hashing")
-
-# blog_name <- "fst_0.8.0"
-# blog_name <- "fst_compression"
-blog_name <- "fst_hashing"
+blog_names <- c(
+  # "fst_0.8.0",
+  # "fst_hashing",
+  "fst_compression")
 
 for (blog_name in blog_names) {
   
@@ -126,11 +125,11 @@ for (blog_name in blog_names) {
   
   
   # copy generated images and media
-  if (file.exists("img/")) {
+  if (file.exists("img")) {
     file.copy("img", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
   }
   
-  if (file.exists("media/")) {
+  if (file.exists("media")) {
     file.copy("media", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
   }
   

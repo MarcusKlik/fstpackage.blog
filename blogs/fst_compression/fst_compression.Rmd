@@ -18,7 +18,7 @@ categories:
 - fst package
 ---
 
-The _fst_ package uses LZ4 and ZSTD compression to compact data stored in the _fst_ format. And now you can also use these compressors directly with methods _compress_fst_ and _decompress_fst_.
+The _fst_ package uses LZ4 and ZSTD compression to compact data stored in the _fst_ format. With the latest release of _fst_, you can also use these compressors directly with methods _compress_fst_ and _decompress_fst_.
 
 ```{r, results='asis', echo=FALSE}
 cat("<!--more-->\n\n")
@@ -26,13 +26,11 @@ cat("<!--more-->\n\n")
 
 ## LZ4 and ZSTD
 
-[LZ4](http://lz4.github.io/lz4/) is one of the fastest compressors around, and like all LZ77-type compressors, decompression is even faster. The _fst_ package uses LZ4 to compress and decompress data at the lower compression level settings of _write__fst_. For higher compression levels, the [ZSTD](https://github.com/facebook/zstd) compressor is used. ZSTD also offers fast decompression but has higher compression ratio's than LZ4.
+[LZ4](http://lz4.github.io/lz4/) is one of the fastest compressors around, and like all LZ77-type compressors, decompression is even faster. The _fst_ package uses LZ4 to compress and decompress data at the lower compression level settings of _write__fst_. For higher compression levels, the [ZSTD](https://github.com/facebook/zstd) compressor is used, which offers superior compression ratio's but requires more CPU resources.
 
 ## Multi-threaded access to LZ4 and ZSTD compressors
 
-From _fst_ version 0.8.0 these compressors can be used directly using methods _compress\_fst_ and _decompress\_fst_.
-
-As an example, we download the _survey\_results\_public.csv_ file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) and recompress it using ZSTD:
+In _fst_ version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ were added that provide direct access to LZ4 and ZSTD. As an example of how they can be used, we download the _survey\_results\_public.csv_ file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) and recompress it using ZSTD:
 
 ```{r, echo = FALSE, results = 'hide'}
 library(fst)
@@ -40,32 +38,37 @@ threads_fst(8)  # use 8 threads
 ```
 
 ```{r}
+library(fst)
+
 # file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017
-sample_file <- "large/survey_results_public.csv"
+sample_file <- "survey_results_public.csv"
 
 # read file into a raw vector
 raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte contents 
 
-# compress bytes with ZSTD (at a low setting)
-compressed_vec <- compress_fst(raw_vec, "ZSTD", 10)
+# compress bytes with ZSTD (at a 50 percent compression level setting)
+compressed_vec <- compress_fst(raw_vec, "ZSTD", 20)
 
-length(compressed_vec) / length(raw_vec)  # compression ratio
+# write the compressed data into a new file
+writeBin(compressed_vec, "survey_results_public.fsc")
+
+length(raw_vec) / length(compressed_vec)  # compression ratio
 ```
 
-This compresses the contents of the _survey\_results\_public.csv_ file to about `r round(100 * length(compressed_vec) / length(raw_vec))` percent of the original size. You can decompress again with:
+The contents of the _survey\_results\_public.csv_ file ar ecompressed to about `r round(100 * length(compressed_vec) / length(raw_vec))` percent of the original size. We used a compression setting of 20 percent of maximum in this example. The resulting vector can be decompressed again with:
 
 ```{r}
-raw_vec_decompressed <- decompress_fst(compressed_vec)
+raw_vec_decompressed <- decompress_fst(compressed_vec)  # decompress raw vector
 ```
 
-What's special about the _fst_ implementation is that it's a fully multi-threaded implementation of the underlying compression algorithms, boosting the compression and decompression speeds:
+What's special about the _fst_ implementation is that it's a fully multi-threaded implementation of the underlying compression algorithms. This is accomplished by dividing the data into (at maximum) 48 blocks, which are then compressed in parallel. This increases the compression and decompression speeds significantly at a small cost to compression ratio:
 
 ```{r, eval = FALSE, results = 'hide'}
 library(microbenchmark)
 
 threads_fst(8)  # use 8 threads
 
-# measure ZSTD compression performance
+# measure ZSTD compression performance at low setting
 compress_time <- microbenchmark(
   compress_fst(raw_vec, "ZSTD", 10)
 )
@@ -79,9 +82,24 @@ cat("Compress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(compress_time$
     "Decompress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(decompress_time$time))
 ```
 
-So the data in this file can be compressed to `r round(100 * length(compressed_vec) / length(raw_vec))` percent of the original size with a compression speed of `r round(10 * as.numeric(object.size(raw_vec)) / median(compress_time$time)) / 10` GB/s, that's pretty fast!
+```{r, echo = FALSE}
+library(microbenchmark)
 
-## bring on the cores
+bench <- readRDS("comp_res_laptop.rds")
+measurement <- bench[Level == 10 & Threads == 8]
+
+compress_speed <- as.numeric(object.size(raw_vec)) / measurement[Mode == "Compress", Time]
+decompress_speed <- as.numeric(object.size(raw_vec)) / measurement[Mode == "Decompress", Time]
+
+compresion_factor <- length(raw_vec) / measurement[, mean(Size)]  # compression ratio
+
+cat("Compress: ", 1e3 * compress_speed,
+    "Decompress: ", 1e3 * decompress_speed)
+```
+
+The contents of the _survey\_results\_public.csv_ file can be compressed with a factor of `r round(10 * compresion_factor) / 10` at a compression speed of around `r round(10 * compress_speed) / 10` GB/s, that's pretty fast!
+
+## Bring on the cores
 
 With more cores, you can do more parallel compression work. With a small benchmark we can show this dependency:
 
@@ -92,14 +110,19 @@ library(data.table)
 bench <- data.table(Threads = as.integer(NULL), Time = as.numeric(NULL),
   Mode = as.character(NULL), Level = as.integer(NULL), Size = as.numeric(NULL))
 
-for (level in 10 * 0:5) {
-  for (threads in 1:20) {
+# Used a range of compression levels and number of cores
+# Note that compression levels above 50 percent take a long time to run.
+# If you want to run this code yourselfor (level in 10 * 0:10) {
+  for (threads in 1:parallel::detectCores()) {
 
-    cat(".")
-    threads_fst(threads)
-    compress_time <- microbenchmark(compressed_vec <- compress_fst(raw_vec, "ZSTD", level), times = 10)
-    decompress_time <- microbenchmark(decompress_fst(compressed_vec), times = 10)
+    cat(".")  # show some progress
+    threads_fst(threads)  # set number of threads to use
     
+    # compress and decompress measurements
+    compress_time <- microbenchmark(compressed_vec <- compress_fst(raw_vec, "ZSTD", level), times = 25)
+    decompress_time <- microbenchmark(decompress_fst(compressed_vec), times = 25)
+    
+    # add compress and decompress measurements to the benchmark results
     bench <- rbindlist(list(bench, 
       data.table(
         Threads = threads,
@@ -115,8 +138,6 @@ for (level in 10 * 0:5) {
         Size = as.integer(object.size(compressed_vec)))))
   }
 }
-
-# saveRDS(bench, "comp_res.rds")  # smallest file
 ```
 
 This creates a _data.table_ with compression and decompression benchmark results. We can display these results in a graph:
@@ -133,10 +154,10 @@ ggplot(bench) +
   facet_wrap(~Mode)
 ```
 
-```{r, echo = FALSE}
+```{r, echo = FALSE,  fig.path = "img/fig-", fig.width = 10, echo = FALSE}
 library(ggplot2)
 
-bench <- readRDS("comp_res.rds")
+bench <- readRDS("comp_res_laptop.rds")
 bench[, Speed := 1e3 * object.size(raw_vec) / Time]
 bench[, Level := as.factor(Level)]
 
@@ -146,8 +167,19 @@ ggplot(bench) +
   facet_wrap(~Mode)
 ```
 
+As can be expected, the compression speed is highest for lower compression level settings. But interesting enough, decompression speeds actually increase with higher compression settings! Additionaly, with stronger compression the length of the result (compressed) vector will decrease (higher compression ratio):
 
-## Column compression in _fst_
+```{r, echo = FALSE,  fig.path = "img/fig-", fig.width = 10, echo = FALSE}
+bench[, Ratio := object.size(raw_vec) / Size]
+bench[, Level := as.numeric(as.character(Level))]
+bench[, Threads := as.factor(Threads)]
 
-Method _compress_fst_ feeds data directly to the LZ4 or ZSTD compressor. But when _fst_ compresses a column from an R _data.frame_, additional information is known about the data that has to be compressed. For example, when you compress a vector of _integer_ values, you already know that the data is organized in groups of 4 bytes (that's the in-memory representation of a single )
+ratios <- bench[, .(Ratio = median(Ratio)), by = "Level,Mode,Threads"]
 
+ggplot(ratios) +
+  geom_line(aes(Level, Ratio, colour = Threads)) +
+  geom_point(aes(Level, Ratio, colour = Threads)) +
+  facet_wrap(~Mode)
+```
+
+When you have a use case where you need to compress once but decompress often (as in reading a compressed file multiple times), it's useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds and a smaller compressed vector!
