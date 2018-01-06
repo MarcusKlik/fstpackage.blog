@@ -28,9 +28,16 @@ The _fst_ package uses LZ4 and ZSTD compression to compact data stored in the _f
 
 ## Multi-threaded access to LZ4 and ZSTD compressors
 
-In _fst_ version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ were added. These methods give you direct access to LZ4 and ZSTD. As an example of how they can be used, we download the _survey\_results\_public.csv_ file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) and recompress it using ZSTD:
+In _fst_ version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ were added. These methods give you direct access to LZ4 and ZSTD. As an example of how they can be used, we download file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) (of about 90 MB) and recompress it using ZSTD:
 
 
+```
+## fst package v0.8.3 IN DEVELOPMENT built 2018-01-02 22:51:27 UTC
+```
+
+```
+## (OpenMP detected, using 8 logical cores)
+```
 
 
 ```r
@@ -39,30 +46,36 @@ library(fst)
 # you can download this file from https://www.kaggle.com/stackoverflow/so-survey-2017
 sample_file <- "survey_results_public.csv"
 
-# read file into a raw vector
-raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte contents 
+# read file contents into a raw vector
+raw_vec <- readBin(sample_file, "raw", file.size(sample_file))
 
-# compress bytes with ZSTD (at a 50 percent compression level setting)
+# compress bytes with ZSTD (at a 20 percent compression level setting)
 compressed_vec <- compress_fst(raw_vec, "ZSTD", 20)
 
 # write the compressed data into a new file
 writeBin(compressed_vec, "survey_results_public.fsc")
 
-length(raw_vec) / length(compressed_vec)  # compression ratio
+# compression ratio
+file.size("survey_results_public.csv") / file.size("survey_results_public.fsc")
 ```
 
 ```
 ## [1] 8.949771
 ```
 
-The contents of the _survey\_results\_public.csv_ file are ecompressed to about 11 percent of the original size (the inverse of the compression ratio). In this example a compression setting of 20 percent of maximum was used. To decompress again you can do:
+The contents of the _survey\_results\_public.csv_ file are compressed to about 11 percent of the original size (the inverse of the compression ratio). In this example a compression setting of 20 percent (of maximum) was used. To decompress that file again you can do:
 
 
 ```r
-raw_vec_decompressed <- decompress_fst(compressed_vec)  # decompress raw vector
+# read compressed file into a raw vector
+compressed_file <- "survey_results_public.fsc"
+compressed_vec <- readBin(compressed_file, "raw", file.size(compressed_file))
+
+# decompress file contents
+raw_vec_decompressed <- decompress_fst(compressed_vec)
 ```
 
-What's special about the _fst_ implementation is that it's a fully multi-threaded implementation of the underlying compression algorithms. This is accomplished by dividing the data into (at maximum) 48 blocks, which are then compressed in parallel. This increases the compression and decompression speeds significantly at a small cost to compression ratio:
+The _fst_ package uses a fully multi-threaded implementation of the LZ4 and ZSTD compression algorithms. This is accomplished by dividing the data into (at maximum) 48 blocks, which are then compressed in parallel. This increases the compression and decompression speeds significantly at a small cost to compression ratio:
 
 
 ```r
@@ -157,4 +170,4 @@ As can be expected, the compression speed is highest for lower compression level
 
 # The case for high compression levels
 
-In many setups you need to compress your data once but decompress it often. Fo example, you compressed and stored a file that will need to be read many times in the future. In that case it's very useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds during reads and the compressed data will occupy less space!
+In many setups you need to compress your data once but decompress it often. For example, you compressed and stored a file that will need to be read many times in the future. In that case it's very useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds during reads and the compressed data will occupy less space!
