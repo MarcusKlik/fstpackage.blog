@@ -1,5 +1,5 @@
 ---
-title: "Multi-threaded compression from R using LZ4 and ZSTD"
+title: "Multi-threaded LZ4 and ZSTD compression from R"
 author: "Mark Klik"
 date: '2017-12-16'
 coverImage: /img/fst_compression/media/space_coast.jpg
@@ -18,17 +18,17 @@ categories:
 - fst package
 ---
 
-The _fst_ package uses LZ4 and ZSTD compression to compact data stored in the _fst_ format. With the latest release of _fst_, you can also use these compressors directly with methods _compress_fst_ and _decompress_fst_.
+The _fst_ package uses LZ4 and ZSTD compression to compact data stored in the _fst_ format. In the latest release, methods _compress\_fst_ and _decompress\_fst_ were added to provide direct multi-threaded access to these compressors.
 
 <!--more-->
 
 ## LZ4 and ZSTD
 
-[LZ4](http://lz4.github.io/lz4/) is one of the fastest compressors around, and like all LZ77-type compressors, decompression is even faster. The _fst_ package uses LZ4 to compress and decompress data at the lower compression level settings of _write__fst_. For higher compression levels, the [ZSTD](https://github.com/facebook/zstd) compressor is used, which offers superior compression ratio's but requires more CPU resources.
+[LZ4](http://lz4.github.io/lz4/) is one of the fastest compressors around, and like all LZ77-type compressors, decompression is even faster. The _fst_ package uses LZ4 to compress and decompress data when lower compression levels are selected (for _write\_fst_). For higher compression levels, the [ZSTD](https://github.com/facebook/zstd) compressor is used, which offers superior compression ratio's but requires more CPU resources.
 
 ## Multi-threaded access to LZ4 and ZSTD compressors
 
-In _fst_ version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ were added that provide direct access to LZ4 and ZSTD. As an example of how they can be used, we download the _survey\_results\_public.csv_ file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) and recompress it using ZSTD:
+In _fst_ version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ were added. These methods give you direct access to LZ4 and ZSTD. As an example of how they can be used, we download the _survey\_results\_public.csv_ file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) and recompress it using ZSTD:
 
 
 
@@ -36,7 +36,7 @@ In _fst_ version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ were added
 ```r
 library(fst)
 
-# file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017
+# you can download this file from https://www.kaggle.com/stackoverflow/so-survey-2017
 sample_file <- "survey_results_public.csv"
 
 # read file into a raw vector
@@ -55,7 +55,7 @@ length(raw_vec) / length(compressed_vec)  # compression ratio
 ## [1] 8.949771
 ```
 
-The contents of the _survey\_results\_public.csv_ file ar ecompressed to about 11 percent of the original size. We used a compression setting of 20 percent of maximum in this example. The resulting vector can be decompressed again with:
+The contents of the _survey\_results\_public.csv_ file are ecompressed to about 11 percent of the original size (the inverse of the compression ratio). In this example a compression setting of 20 percent of maximum was used. To decompress again you can do:
 
 
 ```r
@@ -103,7 +103,8 @@ library(data.table)
 bench <- data.table(Threads = as.integer(NULL), Time = as.numeric(NULL),
   Mode = as.character(NULL), Level = as.integer(NULL), Size = as.numeric(NULL))
 
-# used a range of compression levels and number of cores
+# Note that compression with levels above 50 percent take a long time.
+# If you want to run this code yourself, start with levels 10 * 0:5
 for (level in 10 * 0:10) {
   for (threads in 1:parallel::detectCores()) {
 
@@ -130,8 +131,6 @@ for (level in 10 * 0:10) {
         Size = as.integer(object.size(compressed_vec)))))
   }
 }
-
-# 3saveRDS(bench, "comp_res_laptop2.rds")  # smallest file
 ```
 
 This creates a _data.table_ with compression and decompression benchmark results. We can display these results in a graph:
@@ -146,7 +145,8 @@ bench[, Level := as.factor(Level)]
 ggplot(bench) +
   geom_line(aes(Threads, Speed, colour = Level)) +
   geom_point(aes(Threads, Speed, colour = Level)) +
-  facet_wrap(~Mode)
+  facet_wrap(~Mode) +
+  theme_minimal()
 ```
 
 ![plot of chunk unnamed-chunk-9](/img/fst_compression/img/fig-unnamed-chunk-9-1.png)
@@ -155,4 +155,6 @@ As can be expected, the compression speed is highest for lower compression level
 
 ![plot of chunk unnamed-chunk-10](/img/fst_compression/img/fig-unnamed-chunk-10-1.png)
 
-When you have a use case where you need to compress once but decompress often (as in reading a compressed file multiple times), it's useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds and a smaller compressed vector!
+# The case for high compression levels
+
+In many setups you need to compress your data once but decompress it often. Fo example, you compressed and stored a file that will need to be read many times in the future. In that case it's very useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds during reads and the compressed data will occupy less space!
