@@ -59,7 +59,7 @@ file.size(sample_file) / file.size(compressed_file)
 ## [1] 8.949771
 ```
 
-The contents of the _survey\_results\_public.csv_ file are compressed to about 11 percent of the original size (calculated as the inverse of the compression ratio). In this example a compression setting of 20 percent (of maximum) was used. To decompress that file again you can do:
+The contents of the _csv_ file are compressed to about 11 percent of the original size (calculated as the inverse of the compression ratio). In this example a compression setting of 20 percent (of maximum) was used. To decompress that file again you can do:
 
 
 ```r
@@ -76,7 +76,7 @@ And because _data.table_'s _fread_ method can parse in-memory data directly, you
 ```r
 library(data.table)
 
-# read a dataset from an in-memory csv
+# read dataset from the in-memory csv
 dt <- fread(rawToChar(raw_vec_decompressed))
 ```
 
@@ -113,11 +113,11 @@ cat("Compress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(compress_time$
 ## Compress:  1299.649 MB/s Decompress:  1948.932 MB/s
 ```
 
-The contents of the _survey\_results\_public.csv_ file can be compressed with a factor of 8.4 at a compression speed of around 1.3 GB/s!
+That's a ZSTD compression speed of around 1.3 GB/s!
 
 # Bring on the cores
 
-With more cores, you can do more parallel compression work. With a small benchmark we can show this dependency:
+With more cores, you can do more parallel compression work. A small benchmark will reveal this dependency:
 
 
 ```r
@@ -135,9 +135,11 @@ for (level in 10 * 0:10) {
     cat(".")  # show some progress
     threads_fst(threads)  # set number of threads to use
     
-    # compress and decompress measurements
+    # compress measurement
     compress_time <- microbenchmark(
       compressed_vec <- compress_fst(raw_vec, compressor, level), times = 25)
+    
+    # decompress measurement
     decompress_time <- microbenchmark(
       decompress_fst(compressed_vec), times = 25)
     
@@ -189,3 +191,7 @@ It's clear from the graph that with a combination of LZ4 and ZSTD, a wide range 
 # The case for high compression levels
 
 There are many use cases where you compress your data only once but decompress it much more often. For example, you can compress and store a file that will need to be read many times in the future. In that case it's very useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds during reads and the compressed data will occupy less space.
+
+Also, when operating from a disk that has a lower speed than the compression or decompression speeds, compression can really help. For those cases, compression will actually increase the total transfer speed because (much) less data has to be moved to or from the disk. This is also the main reason why _fst_ is able to serialize a dataset at higher speeds than the physical limits of a drive.
+
+(Please take a look at [this post](/2017/12/fst_0.8.0/) to get an idea how that works exactly)
