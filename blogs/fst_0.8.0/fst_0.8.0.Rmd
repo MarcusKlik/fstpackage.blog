@@ -32,6 +32,7 @@ cat("<!--more-->\n\n")
 
 This post covers some of the enhancements that have been made to _fst_ in the latest release and measures the performance against the serialization methods offered by packages _feather_ and by _base R_ itself. A parallel is drawn with the multi-threading enhancements recently added to _data.table_'s methods _fread_ and _fwrite_ for working with  _csv_ files. Also, some words on how and when to best use the _fst_ binary format to benefit your workflow and speed up your calculations (and when not).
 
+# Contents
 
 ```{r, results='asis', echo=FALSE}
 cat("<!-- toc -->\n\n")
