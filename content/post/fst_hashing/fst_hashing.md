@@ -121,10 +121,10 @@ The computer used for the benchmark has two Xeon E5 CPU's (@2.5GHz) with 10 phys
 _Figure 1: hashing speed vs the number of cores used for computation_
 
 
-Using more than 8-10 threads doesn't help performance. It's clear that the Xeon is hitting other boundaries than computational speed, such as the maximum memory bandwidth and thread- or CPU synchronization issues.
+Using more than 8-10 threads doesn't help performance. It's clear that the Xeon is hitting other boundaries than computational speed, such as the maximum memory bandwidth and thread- or CPU synchronization issues. That's also confirmed by the less than 100 percent pressure on CPU resources during the benchmark:
 
 ![cpu-graph](/img/fst_hashing/media/cpu.png)
-_Figure 2: cpu resources used during benchmark_
+_Figure 2: CPU resources used during benchmark_
 
 # Single threaded mode
 
