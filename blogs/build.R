@@ -24,6 +24,7 @@ CheckBaseURL <- function() {
   
   # Get branch of head
   current_branch <- branch_table[regexpr("(HEAD)", Head) != -1, branch_name(Head)]
+  current_branch <- current_branch[current_branch != "HEAD"]
 
   # Get config.toml file
   toml <- readLines("../config.toml")
@@ -85,50 +86,60 @@ CheckBaseURL <- function() {
 CheckBaseURL()
 
 
-# currently active blog to compile
-blog_name <- "fst_0.8.0"
+# blogs to compile
+blog_names <- c(
+  # "fst_0.8.0",
+  # "fst_hashing",
+  "fst_compression")
 
-
-blog <- paste0(blog_name, ".Rmd")
-post_dir <- paste0("../content/post/", blog_name)
-
-# create an image subdirectory for the post
-if (!file.exists("../static/img")) {
-  dir.create("../static/img/")
-}
-
-img_dir <- paste0("../static/img/", blog_name)
-if (!file.exists(img_dir)) {
-  dir.create(img_dir)
-}
-
-# create blog dir if non-existing
-if (!file.exists(post_dir)) {
-  dir.create(post_dir)
-}
-
-# compile from blog directory
-setwd(blog_name)
-
-
-# knit blog
-knitr::knit(blog, paste0("../../content/post/",  paste0(blog_name, "/", blog_name, ".md")))
-
-
-# copy generated images
-file.copy("img", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
-
-setwd("..")
-
-
-# get all generated md files from post directory
-md_files <- list.files("../content/post", "\\.md$", recursive = TRUE, full.names = TRUE)
-
-# replace all image references with correct reference
-for (md_file in md_files) {
-  lines <- readLines(md_file)
+for (blog_name in blog_names) {
+  
+  blog <- paste0(blog_name, ".Rmd")
+  post_dir <- paste0("../content/post/", blog_name)
+  post_file <- paste0("../content/post/",  blog_name, "/", blog_name, ".md")
+  
+  # create an image subdirectory for the post
+  if (!file.exists("../static/img")) {
+    dir.create("../static/img/")
+  }
+  
+  img_dir <- paste0("../static/img/", blog_name)
+  if (!file.exists(img_dir)) {
+    dir.create(img_dir)
+  }
+  
+  # create blog dir if non-existing
+  if (!file.exists(post_dir)) {
+    dir.create(post_dir)
+  } else
+  {
+    file.remove(post_file)
+  }
+  
+  # compile from blog directory
+  setwd(blog_name)
+  
+  
+  # knit blog
+  knitr::knit(blog, paste0("../", post_file))
+  
+  
+  # copy generated images and media
+  if (file.exists("img")) {
+    file.copy("img", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
+  }
+  
+  if (file.exists("media")) {
+    file.copy("media", paste0("../", img_dir), overwrite = TRUE, recursive = TRUE)
+  }
+  
+  setwd("..")
+  
+  
+  # replace all image references with correct reference
+  lines <- readLines(post_file)
   lines <- gsub("img/fig-", paste0("/img/", blog_name, "/img/fig-"), lines, fixed = TRUE)
-  writeLines(lines, md_file)
+  writeLines(lines, post_file)
 }
 
 

@@ -2,10 +2,11 @@
 .Rhistory
 .RData
 .Ruserdata
-*.fst
-blogs/img/*.png
+*.orig
 blogs/*.html
 blogs/large/E.coli
 *.csv
 /public/*
-/blogs/*/img/*
+/blogs/*/img/*.png
+/blogs/fst_0.8.0/sampleset.fst
+*.fsc
