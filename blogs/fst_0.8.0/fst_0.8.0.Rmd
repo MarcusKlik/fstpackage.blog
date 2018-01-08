@@ -269,7 +269,7 @@ _Figure 3: Read and write speed of csv files as measured for packages data.table
 
 The _data.table_ package is an order of magnitude faster than the competing solutions from _utils_ and _readr_. Even when only a single thread is used, the speed difference is quite large. This is all due to the excellent work of the people working on the _data.table_ package. The parallel implementations of _fwrite_ and _fread_ were created recently and they are clearly very fast, an impressive piece of work!
 
-# When to use _fst_ and when not
+# When to use the _fst_ format and when to stick with _csv_
 
 The _csv_ format is a common data exchange format that is widely supported by consumer, business, and scientific applications. It's human-readable, can be edited with a simple text editor and can be used cross-platform and cross-language. And if you use the _data.table_ package to read and write your _csv_, it's fast as well.
 
