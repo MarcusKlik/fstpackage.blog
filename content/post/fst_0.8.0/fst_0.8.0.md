@@ -95,6 +95,7 @@ This 'on-disk subsetting' takes less memory, because memory is only allocated fo
 The graph below depicts the relation between the read time and the amount of rows selected from a 50 million row _fst_ file. As you can see, the average read time grows with the amount of rows selected. Reading all 50 million rows takes around 0.45 seconds, the value reported in the table in the introduction.
 
 <img src="/img/fst_0.8.0/img/fig-unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="50%" />
+_Figure 1: Time required for reading a subset of a stored dataset_
 
 # Some basic speed measurements
 
@@ -153,10 +154,10 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.2975355
+## [1] 0.3024701
 ```
 
-The file size is about 29 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
+The file size is about 30 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
 
 
 # Multi-threading
@@ -173,6 +174,8 @@ With more threads _fst_ can do more background processing such as compression. O
 The graph below shows measurements of the read- and write speeds for various 'thread settings' and number of rows. Sample sizes of 10 million and 50 million rows were used.
 
 ![plot of chunk unnamed-chunk-15](/img/fst_0.8.0/img/fig-unnamed-chunk-15-1.png)
+_Figure 2: Binary read and write speed for packages fst, feather and for base R_
+
 
 
 
@@ -183,6 +186,7 @@ The effects of multi-threading are quite obvious and _fst_ does well in both rea
 The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files. Below is a graph comparing _fread_ / _fwrite_ to it's counterparts _read.csv2_ / _write.csv2_ (package _utils_) and _write\_csv_ / _read\_csv_ (package _readr_):
 
 ![plot of chunk unnamed-chunk-17](/img/fst_0.8.0/img/fig-unnamed-chunk-17-1.png)
+_Figure 3: Read and write speed of csv files as measured for packages data.table, readr and utils (base R)_
 
 The _data.table_ package is an order of magnitude faster than the competing solutions from _utils_ and _readr_. Even when only a single thread is used, the speed difference is quite large. This is all due to the excellent work of the people working on the _data.table_ package. The parallel implementations of _fwrite_ and _fread_ were created recently and they are clearly very fast, an impressive piece of work!
 
@@ -211,6 +215,7 @@ How does that work? Suppose a disk has an extremely high speed, then any amount 
 To shift the balance, the _fst_ package uses multi-threading to compress data 'in the background', so while the disk is busy writing data. Using that setup, it's possible to saturate your disk and still compress data, effectively increasing the observed write (and read) speed. The figure below shows how compression impacts the performance of reading and writing data to disk.
 
 ![plot of chunk unnamed-chunk-18](/img/fst_0.8.0/img/fig-unnamed-chunk-18-1.png)
+_Figure 4: Compression and decompression speed depends on compression level settings_
 
 These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20 physical cores (with more cores, it's easier to see the scaling effects). The horizontal groups in the figure represent the different amount of threads used (4, 8, 10 and 20). Vertically we have the read and write speeds. The colors represent various compression settings in the range of 0 to 100 (so not the number of threads like in the previous graph). Compression helps a lot to increase the maximum write speed. If enough cores are used, the background compression can keep up with the SSD and the total write speed will increase accordingly (**less data == more speed**). The same could be expected to be true for the read speed. The effects seem to be minimal however and some more thinking is required to bring the read speed at the same level as the write speed (perhaps we need parallel file connections, larger read blocks or different multi-threading logic? [ideas are very welcome](https://github.com/fstpackage/fst/issues) :-)).
 

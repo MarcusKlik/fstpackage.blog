@@ -120,12 +120,14 @@ That's a ZSTD compression speed of around 1.3 GB/s!
 With more cores, you can do more parallel compression work. When we do the compression and decompression measurements above for a range of thread and compression level settings, we find the following dependency between speed and parallelism:
 
 ![plot of chunk unnamed-chunk-9](/img/fst_compression/img/fig-unnamed-chunk-9-1.png)
+_Figure 1: Compression and decompression speeds vs the number of cores used for computation_
 
 The code that was used to obtain these results is given in the last paragraph. As can be expected, the compression speed is highest for lower compression level settings. But interesting enough, decompression speeds actually increase with higher compression settings! For the highest levels, ZSTD decompression speeds of more than 3 GB/s were measured in our experiment!
 
 Different compression levels settings lead to different compression ratio's. This relation is depicted below. For completeness, LZ4 compression ratio's were added as well:
 
 ![plot of chunk unnamed-chunk-10](/img/fst_compression/img/fig-unnamed-chunk-10-1.png)
+_Figure 2: Compression ratio for different settings of the compression level_
 
 The highlighted point at a 20 percent (ZSTD) compression level corresponds to the measurement that we did earlier. It's clear from the graph that with a combination of LZ4 and ZSTD, a wide range of compression ratio's (and speeds) is available to the user.
 
