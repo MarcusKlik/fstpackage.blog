@@ -141,6 +141,7 @@ ggplot(fig_results) +
   theme_minimal() +
   xlab("Number of rows read (millions)")
 ```
+_Figure 1: Time required for reading a subset of a stored dataset_
 
 # Some basic speed measurements
 
@@ -233,6 +234,8 @@ ggplot(fig_results) +
   ylab("Read or write speed in GB/s") +
   theme_minimal()
 ```
+_Figure 2: Binary read and write speed for packages fst, feather and for base R_
+
 
 ```{r, echo = FALSE}
 max_speed <- fig_results[Mode == "Write" & Speed == max(Speed)]
@@ -262,6 +265,7 @@ ggplot(fig_results) +
   ylab("Read or write speed in GB/s") +
   theme_minimal()
 ```
+_Figure 3: Read and write speed of csv files as measured for packages data.table, readr and utils (base R)_
 
 The _data.table_ package is an order of magnitude faster than the competing solutions from _utils_ and _readr_. Even when only a single thread is used, the speed difference is quite large. This is all due to the excellent work of the people working on the _data.table_ package. The parallel implementations of _fwrite_ and _fread_ were created recently and they are clearly very fast, an impressive piece of work!
 
@@ -310,6 +314,7 @@ ggplot(fig_results) +
     "#433B54"))(nr_of_levels + 2)[(nr_of_levels + 2):3]) +
   theme_minimal()
 ```
+_Figure 4: Compression and decompression speed depends on compression level settings_
 
 These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20 physical cores (with more cores, it's easier to see the scaling effects). The horizontal groups in the figure represent the different amount of threads used (4, 8, 10 and 20). Vertically we have the read and write speeds. The colors represent various compression settings in the range of 0 to 100 (so not the number of threads like in the previous graph). Compression helps a lot to increase the maximum write speed. If enough cores are used, the background compression can keep up with the SSD and the total write speed will increase accordingly (**less data == more speed**). The same could be expected to be true for the read speed. The effects seem to be minimal however and some more thinking is required to bring the read speed at the same level as the write speed (perhaps we need parallel file connections, larger read blocks or different multi-threading logic? [ideas are very welcome](https://github.com/fstpackage/fst/issues) :-)).
 
