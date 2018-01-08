@@ -18,7 +18,7 @@ categories:
 - fst package
 ---
 
-The _fst_ package uses LZ4 and ZSTD to compress columnar data stored in the _fst_ format. In the latest release, methods _compress\_fst_ and _decompress\_fst_ were added which allow for direct (multi-threaded) access to these excellent compressors.
+The _fst_ package uses LZ4 and ZSTD to compress columnar data. In the latest release, methods _compress\_fst_ and _decompress\_fst_ were added which allow for direct (multi-threaded) access to these excellent compressors.
 
 <!--more-->
 
@@ -30,7 +30,7 @@ The _fst_ package uses LZ4 and ZSTD to compress columnar data stored in the _fst
 
 # How to use LZ4 and ZSTD from the _fst_ package
 
-In _fst_ version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ were added. These methods give you direct access to LZ4 and ZSTD. As an example of how they can be used, we download a file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) (with a size of about 90 MB) and recompress it using ZSTD:
+From version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ are available in the package. These methods give you direct access to LZ4 and ZSTD. As an example of how they can be used, we download a 90 MB file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) and recompress it using ZSTD:
 
 
 
@@ -44,7 +44,7 @@ sample_file <- "survey_results_public.csv"
 # read file contents into a raw vector
 raw_vec <- readBin(sample_file, "raw", file.size(sample_file))
 
-# compress bytes with ZSTD at a 20 percent compression level setting
+# compress bytes with ZSTD at a compression level of 20 percent
 compressed_vec <- compress_fst(raw_vec, "ZSTD", 20)
 
 # write the compressed data into a new file
@@ -59,7 +59,7 @@ file.size(sample_file) / file.size(compressed_file)
 ## [1] 8.949771
 ```
 
-The contents of the _csv_ file are compressed to about 11 percent of the original size (calculated as the inverse of the compression ratio). In this example a compression setting of 20 percent (of maximum) was used. To decompress that file again you can do:
+using a ZSTD compression level of 20 percent, the contents of the _csv_ file are compressed to about 11 percent of the original size (calculated as the inverse of the compression ratio). To decompress the generated compressed file again you can do:
 
 
 ```r
@@ -70,7 +70,7 @@ compressed_vec <- readBin(compressed_file, "raw", file.size(compressed_file))
 raw_vec_decompressed <- decompress_fst(compressed_vec)
 ```
 
-And because _data.table_'s _fread_ method can parse in-memory data directly, you can even do:
+A nice feature of _data.table_'s _fread_ method is that it can parse in-memory data directly. That means that we can easily feed our raw vector to _fread_:
 
 
 ```r
@@ -80,7 +80,7 @@ library(data.table)
 dt <- fread(rawToChar(raw_vec_decompressed))
 ```
 
-effectively reading your _data.table_ from a compressed file (at pretty impressive speeds)!
+This effectively reads your _data.table_ from a compressed file, which saves disk space and increases read speed for slow disks.
 
 # Multi-threading
 
@@ -117,7 +117,30 @@ That's a ZSTD compression speed of around 1.3 GB/s!
 
 # Bring on the cores
 
-With more cores, you can do more parallel compression work. A small benchmark will reveal this dependency:
+With more cores, you can do more parallel compression work. When we do the compression and decompression measurements above for a range of thread and compression level settings, we find the following dependency between speed and parallelism:
+
+![plot of chunk unnamed-chunk-9](/img/fst_compression/img/fig-unnamed-chunk-9-1.png)
+
+The code that was used to obtain these results is given in the last paragraph. As can be expected, the compression speed is highest for lower compression level settings. But interesting enough, decompression speeds actually increase with higher compression settings! For the highest levels, ZSTD decompression speeds of more than 3 GB/s were measured in our experiment!
+
+Different compression levels settings lead to different compression ratio's. This relation is depicted below. For completeness, LZ4 compression ratio's were added as well:
+
+![plot of chunk unnamed-chunk-10](/img/fst_compression/img/fig-unnamed-chunk-10-1.png)
+
+The highlighted point at a 20 percent (ZSTD) compression level corresponds to the measurement that we did earlier. It's clear from the graph that with a combination of LZ4 and ZSTD, a wide range of compression ratio's (and speeds) is available to the user.
+
+# The case for high compression levels
+
+There are many use cases where you compress your data only once but decompress it much more often. For example, you can compress and store a file that will need to be read many times in the future. In that case it's very useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds during reads and the compressed data will occupy less space.
+
+Also, when operating from a disk that has a lower speed than the (de-)compression algorithm, compression can really help. For those cases, compression will actually increase the total transfer speed because (much) less data has to be moved to or from the disk. This is also the main reason why _fst_ is able to serialize a dataset at higher speeds than the physical limits of a drive.
+
+(Please take a look at [this post](/2017/12/fst_0.8.0/) to get an idea of how that works exactly)
+
+
+# Benchmark code
+
+Below is the benchmark script that was used to obtain the dependency graph for the number of cores and compression level.
 
 
 ```r
@@ -137,7 +160,7 @@ for (level in 10 * 0:10) {
     
     # compress measurement
     compress_time <- microbenchmark(
-      compressed_vec <- compress_fst(raw_vec, compressor, level), times = 25)
+      compressed_vec <- compress_fst(raw_vec, "ZSTD", level), times = 25)
     
     # decompress measurement
     decompress_time <- microbenchmark(
@@ -161,37 +184,4 @@ for (level in 10 * 0:10) {
 }
 ```
 
-This creates a _data.table_ with compression and decompression benchmark results. We can display these results in a graph:
-
-
-```r
-library(ggplot2)
-
-bench[, Speed := 1e3 * object.size(raw_vec) / Time]  # unit to MB/s
-bench[, Level := as.factor(Level)]  # for display purposes
-
-ggplot(bench) +
-  geom_line(aes(Threads, Speed, colour = Level)) +
-  geom_point(aes(Threads, Speed, colour = Level)) +
-  facet_wrap(~Mode) +
-  theme_minimal() +
-  ylab("Speed (MB/s)")
-```
-
-![plot of chunk unnamed-chunk-11](/img/fst_compression/img/fig-unnamed-chunk-11-1.png)
-
-As can be expected, the compression speed is highest for lower compression level settings. But interesting enough, decompression speeds actually increase with higher compression settings and decompression speeds of more than 3 GB/s were measured in our experiment!
-
-The compression ratio measured for the selected levels are shown below (with LZ4 added as well):
-
-![plot of chunk unnamed-chunk-12](/img/fst_compression/img/fig-unnamed-chunk-12-1.png)
-
-It's clear from the graph that with a combination of LZ4 and ZSTD, a wide range of compression ratio's (and speeds) is available to the user.
-
-# The case for high compression levels
-
-There are many use cases where you compress your data only once but decompress it much more often. For example, you can compress and store a file that will need to be read many times in the future. In that case it's very useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds during reads and the compressed data will occupy less space.
-
-Also, when operating from a disk that has a lower speed than the compression or decompression speeds, compression can really help. For those cases, compression will actually increase the total transfer speed because (much) less data has to be moved to or from the disk. This is also the main reason why _fst_ is able to serialize a dataset at higher speeds than the physical limits of a drive.
-
-(Please take a look at [this post](/2017/12/fst_0.8.0/) to get an idea how that works exactly)
+This creates a _data.table_ with compression and decompression benchmark results.
