@@ -1,7 +1,7 @@
 ---
 title: "Lightning fast serialization of datasets using the fst package"
 author: "Mark Klik"
-date: '2017-12-16'
+date: '2018-01-08'
 coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg
 editor_options:
   chunk_output_type: console
@@ -29,7 +29,6 @@ Version 0.8.0 of R's _fst_ package has been released to CRAN. The package is now
 <!--more-->
 
 This post covers some of the enhancements that have been made to _fst_ in the latest release and measures the performance against the serialization methods offered by packages _feather_ and by _base R_ itself. A parallel is drawn with the multi-threading enhancements recently added to _data.table_'s methods _fread_ and _fwrite_ for working with  _csv_ files. Also, some words on how and when to best use the _fst_ binary format to benefit your workflow and speed up your calculations (and when not).
-
 
 <!-- toc -->
 
@@ -145,7 +144,7 @@ as.numeric(object.size(df)) / write_speed$time
 ## [1] 3.55976
 ```
 
-But wait, how can the measured write speed (about 3.5 GB/s) be so much higher than the maximum write speed of the SSD used (about 1.2 GB/s)? That's because the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame (and **less data == more speed**):
+But wait, how can the measured write speed (about 3.5 GB/s) be so much higher than the maximum write speed of the SSD used (about 1.2 GB/s)? That's because the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame because of the compression used (**less data == more speed**):
 
 
 ```r
@@ -154,10 +153,10 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.3109256
+## [1] 0.2975355
 ```
 
-So the file size is about 31 percent of the original data frame size. This reduced file size is the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
+The file size is about 29 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
 
 
 # Multi-threading
@@ -185,7 +184,7 @@ The way _fst_ uses multiple threads to do background processing is similar to ho
 
 ![plot of chunk unnamed-chunk-17](/img/fst_0.8.0/img/fig-unnamed-chunk-17-1.png)
 
-The _data.table_ package is an order of magnitude faster than the competition! Even when only a single thread is used, the speed difference is quite large. This is all due to the excellent work of the people working on the _data.table_ package. The parallel implementations of _fwrite_ and _fread_ were created recently and they are clearly very fast, an impressive piece of work!
+The _data.table_ package is an order of magnitude faster than the competing solutions from _utils_ and _readr_. Even when only a single thread is used, the speed difference is quite large. This is all due to the excellent work of the people working on the _data.table_ package. The parallel implementations of _fwrite_ and _fread_ were created recently and they are clearly very fast, an impressive piece of work!
 
 # When to use _fst_ and when not
 
@@ -194,12 +193,12 @@ The _csv_ format is a common data exchange format that is widely supported by co
 Despite these obvious advantages, there are some things you can't do with _csv_ but you can by using the _fst_ (binary) format:
 
 * A _csv_ file can't be compressed, so in general it will take more disk space than a _fst_ file.
-* it's hard to read a single column of data without parsing the rest of the information in the rows (because the _csv_ format is _row-oriented_). By contrast, the _fst_ format is column-oriented (as is the _feather_ format).
-* Reading a selection of rows from a _csv_ requires searching the file for line-ends. So you can't have true random-access to a _csv_ file. In _fst_, meta data is stored that allows for the exact localization of any element of a dataset.
+* With a _csv_ it's hard to read a single column of data without parsing the rest of the information in the rows (because the _csv_ format is _row-oriented_). By contrast, the _fst_ format is column-oriented (as is the _feather_ format) so selecting specific columns requires no overhead.
+* Reading a selection of rows from a _csv_ requires searching the file for line-ends. That means you can never have true random-access to a _csv_ file (a search algorithm is needed). In _fst_, meta data is stored that allows for the exact localization of any (compressed) element of a dataset, enabling full random-access.
 * You can't add columns to a _csv_ file without re-writing the entire file.
-* You can't store information from memory to _csv_ (and vice versa) without first (de-)parsing to human-readable format. On other words, no zero-copy storage is possible. The _fst_ format is a zero-copy format and in general no parsing is required to transfer data to and from memory.
+* You can't store information from memory to _csv_ (and vice versa) without first (de-)parsing to human-readable format. On other words, no zero-copy storage is possible. The _fst_ format is a zero-copy format and in general no parsing is required to transfer data to and from memory (except for (de-)compression).
 
-Because of these reasons, storing your data with _fst_ will be faster and more compact than storing your data in a _csv_ file. But whether you are best of using a _csv_ or _fst_ file depends on your specific use case. _csv_ is king especially for small datasets where the serialization performance is already adequate. But if you need more speed, more compact files or random access, _fst_ can help you with that.
+To sum up, this all means that storing your data with _fst_ will in general be faster and more compact than storing your data in a _csv_ file, but the resulting _fst_ file will be less portable and non human-readable. Whether you are best of using a _csv_ or _fst_ file depends on your specific use case. _csv_ is king especially for small datasets where the serialization performance is already adequate. But if you need more speed, more compact files or random access, _fst_ can help you with that.
 
 # How compression helps to increase performance
 
@@ -213,7 +212,7 @@ To shift the balance, the _fst_ package uses multi-threading to compress data 'i
 
 ![plot of chunk unnamed-chunk-18](/img/fst_0.8.0/img/fig-unnamed-chunk-18-1.png)
 
-These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20 physical cores. With more cores, it's easier to see the scaling effects. The horizontal groups in the figure represent the different amount of threads used (4, 8, 10 and 20). Vertically we have the read and write speeds. The colors represent various compression settings in the range of 0 to 100 (so not the number of threads like in the previous graph). Compression helps a lot to increase the write speed. If enough cores are used, the background compression can keep up with the SSD and the total write speed will increase accordingly (**less data == more speed**). The same could be expected to be true for the read speed. The effects seem to be minimal however and some more thinking is required to bring the read speed at the same level as the write speed (perhaps we need parallel file connections, larger read blocks or different multi-threading logic? [ideas are very welcome](https://github.com/fstpackage/fst/issues) :-)).
+These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20 physical cores (with more cores, it's easier to see the scaling effects). The horizontal groups in the figure represent the different amount of threads used (4, 8, 10 and 20). Vertically we have the read and write speeds. The colors represent various compression settings in the range of 0 to 100 (so not the number of threads like in the previous graph). Compression helps a lot to increase the maximum write speed. If enough cores are used, the background compression can keep up with the SSD and the total write speed will increase accordingly (**less data == more speed**). The same could be expected to be true for the read speed. The effects seem to be minimal however and some more thinking is required to bring the read speed at the same level as the write speed (perhaps we need parallel file connections, larger read blocks or different multi-threading logic? [ideas are very welcome](https://github.com/fstpackage/fst/issues) :-)).
 
 # Per-column compression optimalization
 
@@ -221,42 +220,18 @@ The _fst_ package uses the excellent [LZ4](http://lz4.github.io/lz4/) compressor
 
 > Note: there is still much work to be done to further optimize these compression schemes. The current version of the _fst_ package is using 'best (first) guess schemes'. Following more elaborate benchmarks in the future, these schemes will be fine-tuned for better performance and new compressors could also be added (such as dictionary based compressors optimized for text or bit-packing compressors for integers).
 
-All compression settings in _fst_ are set as a value between 0 and 100 ('a percentage'). That percentage is translated into a mix of compression settings for each (16kB) data block. This mix is optimized (or will be :-)) for that particular data type. For example, at a compression setting of 30, data blocks in an integer column are a mix of 40 percent uncompressed blocks and 60 percent blocks compressed with LZ4 + a byte shuffle. The byte shuffle works because we are dealing with an integer column. So we use information about the specific column _type_ to enhance the compression. This is a unique feature of _fst_ that has a huge positive impact on performance.
-
+All compression settings in _fst_ are set as a value between 0 and 100 ('a percentage'). That percentage is translated into a mix of compression settings for each (16kB) data block. This mix is optimized (and will be more so in the future :-)) for that particular data type. For example, at a compression setting of 30, data blocks in an integer column are a mix of 40 percent uncompressed blocks and 60 percent blocks compressed with LZ4 + a byte shuffle. The byte shuffle is an extra operation applied before compression to speed things up. That only works  because we know we are dealing with an integer column (byte shuffling a character column wouldn't help at all). That means that we can use information about the specific column _type_ to enhance the compression. This is a unique feature of _fst_ that has a huge positive impact on performance.
 
 # More on fst's features
 
 If you're interested in learning more on some of the new features of _fst_, you can also take a look at these posts:
 
-* [Multi-threaded compression using LZ4 and ZSTD](/2017/12/fst_compression/)
-* [Multi-threaded hashing with xxHash](/2017/12/fst_hashing/)
+* [Multi-threaded compression using LZ4 and ZSTD](/2018/01/fst_compression/)
+* [Multi-threaded hashing with xxHash](/2018/01/fst_hashing/)
  
  
 # Final note
 
 With CRAN release v0.8.0, the _fst_ format is stable and backwards compatible. That means that all _fst_ files generated with _fst_ package v0.8.0 or later can be read by future versions of the package.
-
-
-## Separate core library
-
-With this new release, the core C++ code of _fst_ is completely separated from the _fst_ 'R API' (the C++ core library is now called [_fstlib_](https://github.com/fstpackage/fstlib)). Having a separate C++ library opens up the way for other languages to implement the _fst_ format (e.g. Python, Julia, C++).
-
-# Format stable and backwards compatible
-
-With CRAN release v0.8.0, the format is stable and backwards compatible. That means that all _fst_ files generated with _fst_ package v0.8.0 or later can be read by future versions of the package.
-
-# Future plans
-
-Many new features are planned for _fst_ thanks to a lot of requests and idea's from the community (much obliged!), a few examples:
-
-* _data.table_ interface
-* row bind data to an existing _fst_ file
-* add columns to an existing _fst_ file
-* on-disk filtering of data with small memory footprint
-* hashing of data blocks for added security
-* encryption
-* fast sampling of a _fst_ file
-* multi-threaded (de-)serialization of _character_ columns
-* _dplyr_ interface
 
 Thanks for making it to the end of my post (no small task) and for your interest in using _fst_!

@@ -88,9 +88,10 @@ CheckBaseURL()
 
 # blogs to compile
 blog_names <- c(
-  # "fst_0.8.0",
   # "fst_hashing",
-  "fst_compression")
+  "fst_compression"
+  # "fst_0.8.0"
+  )
 
 for (blog_name in blog_names) {
   

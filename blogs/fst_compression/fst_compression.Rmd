@@ -1,8 +1,8 @@
 ---
 title: "Multi-threaded LZ4 and ZSTD compression from R"
 author: "Mark Klik"
-date: '2017-12-16'
-coverImage: /img/fst_compression/media/space_coast.jpg
+date: '2018-01-08'
+coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515406380/space_coast_pf4huz.jpg
 editor_options:
   chunk_output_type: console
 metaAlignment: center
@@ -10,7 +10,7 @@ slug: fst_compression
 tags:
 - fst package
 - compression
-thumbnailImage: /img/fst_compression/media/compression.jpg
+thumbnailImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515407346/compression_h1yrsu.jpg
 thumbnailImagePosition: left
 categories:
 - R

@@ -1,8 +1,8 @@
 ---
 title: "Multi-threaded hashing with xxHash"
 author: "Mark Klik"
-date: '2017-12-16'
-coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg
+date: '2018-01-08'
+coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515412365/keywest-sunset_q60rxg.jpg
 editor_options:
   chunk_output_type: console
 metaAlignment: center
@@ -13,7 +13,7 @@ tags:
 - fst package
 - hashing
 - benchmark
-thumbnailImage: /img/fst_hashing/media/fingerprint.jpg
+thumbnailImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515407395/fingerprint_ecpfcq.jpg
 thumbnailImagePosition: left
 categories:
 - R
