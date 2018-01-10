@@ -2,7 +2,7 @@
 title: "Multi-threaded hashing with xxHash"
 author: "Mark Klik"
 date: '2018-01-10'
-coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515412365/keywest-sunset_q60rxg.jpg
+coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515588830/electronics_p9f4uo.jpg
 editor_options:
   chunk_output_type: console
 metaAlignment: center

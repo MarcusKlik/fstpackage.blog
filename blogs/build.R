@@ -88,9 +88,9 @@ CheckBaseURL()
 
 # blogs to compile
 blog_names <- c(
-  "fst_hashing",
-  "fst_compression",
-  "fst_0.8.0"
+  "fst_hashing"
+  # "fst_compression",
+  # "fst_0.8.0"
   )
 
 for (blog_name in blog_names) {
@@ -144,6 +144,6 @@ for (blog_name in blog_names) {
 }
 
 
-# blogdown::serve_site()
+blogdown::serve_site()
 
 # blogdown::hugo_version()
