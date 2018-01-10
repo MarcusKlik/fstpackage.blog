@@ -1,7 +1,7 @@
 ---
 title: "Multi-threaded LZ4 and ZSTD compression from R"
 author: "Mark Klik"
-date: '2018-01-08'
+date: '2018-01-10'
 coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515406380/space_coast_pf4huz.jpg
 editor_options:
   chunk_output_type: console

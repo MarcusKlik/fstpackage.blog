@@ -1,7 +1,7 @@
 ---
 title: "Lightning fast serialization of datasets using the fst package"
 author: "Mark Klik"
-date: '2018-01-08'
+date: '2018-01-10'
 coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg
 editor_options:
   chunk_output_type: console
@@ -43,19 +43,19 @@ Below you can see just how fast _fst_ is. The benchmark was performed on a lapto
 <br>
 
 
-|Method        |Format  |Time (sec) |Size (MB) |File Size (MB) |Speed (MB/s) |N       |
-|:-------------|:-------|:----------|:---------|:--------------|:------------|:-------|
-|readRDS       |bin     |1.57       |1000      |1000           |633          |112     |
-|saveRDS       |bin     |2.04       |1000      |1000           |489          |112     |
-|read_feather  |bin     |3.95       |1000      |812            |253          |112     |
-|write_feather |bin     |1.82       |1000      |812            |549          |112     |
-|**read_fst**  |**bin** |**0.45**   |**1000**  |**303**        |**2216**     |**142** |
-|**write_fst** |**bin** |**0.28**   |**1000**  |**303**        |**3559**     |**142** |
+|Method        |Format  |Time (sec) |Size (MB) |File Size (MB) |Speed (MB/s) |
+|:-------------|:-------|:----------|:---------|:--------------|:------------|
+|readRDS       |bin     |1.57       |1000      |1000           |633          |
+|saveRDS       |bin     |2.04       |1000      |1000           |489          |
+|read_feather  |bin     |3.95       |1000      |812            |253          |
+|write_feather |bin     |1.82       |1000      |812            |549          |
+|**read_fst**  |**bin** |**0.45**   |**1000**  |**303**        |**2216**     |
+|**write_fst** |**bin** |**0.28**   |**1000**  |**303**        |**3559**     |
 _Table 1: read and write performance of fst, feather and baseR binary formats_
 
 The table compares method _write\_fst_ to it's counterparts _write\_feather_ and _saveRDS_. Method _read\_fst_ is compared to it's counterparts _read\_feather_ and _readRDS_. For _saveRDS_, the uncompressed mode was selected because the compressed mode is very slow (a few MB/s only).
 
-As can be seen, a write speed of more than 3.5 GB/s was measured for _write\_fst_. That speed is even higher than the speed reported in the drive's specifications! 
+As can be seen, a write speed of more than 3.5 GB/s was measured for _write\_fst_. That speed is higher than the speed reported in the drive's specifications (about 1.2 GB/s) due to the magic of compression. Because data is compressed before it's written to disk, there is less actual data transported from the CPU to the SSD, greatly boosting write (and read) speeds.
 
 After introducing some of the basic features of _fst_, we will get back to these benchmarks and take a look at how the package uses a combination of multi-threading and compression to effectively boost the performance of data frame serialization.
 
@@ -70,7 +70,7 @@ library(fst)
 write_fst(df, "sampleset.fst")  # write using default compression
 ```
 
-This writes data frame _df_ to a _fst_ file using the default compression setting of 50 percent. To retrieve the stored data:
+This writes data frame _df_ to a _fst_ file using the default compression setting of 50 percent. If _df_ is a _data.table_, the key columns (if any) are also preserved. To retrieve the stored data:
 
 
 ```r
@@ -145,7 +145,7 @@ as.numeric(object.size(df)) / write_speed$time
 ## [1] 3.55976
 ```
 
-But wait, how can the measured write speed (about 3.5 GB/s) be so much higher than the maximum write speed of the SSD used (about 1.2 GB/s)? That's because the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame because of the compression used (**less data == more speed**):
+As we saw earlier, the measured write speed (about 3.5 GB/s) is much higher than the maximum write speed of the SSD. This is possible because the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame because of the compression used (**less data == more speed**):
 
 
 ```r
@@ -154,7 +154,7 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.3072717
+## [1] 0.304761
 ```
 
 The file size is about 30 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
@@ -183,7 +183,7 @@ The effects of multi-threading are quite obvious and _fst_ does well in both rea
 
 > The measured read speeds are lower than the write speeds although the SSD has a higher read throughput according to the specifications. This probably means that there is room for some more improvements on the read speeds when the code is further optimized.
 
-The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files. Below is a graph comparing _fread_ / _fwrite_ to it's counterparts _read.csv2_ / _write.csv2_ (package _utils_) and _write\_csv_ / _read\_csv_ (package _readr_):
+The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files. Below is a graph comparing _fread_/_fwrite_ to it's counterparts _read.csv2_/_write.csv2_ (package _utils_) and _read\_csv_/_write\_csv_ (package _readr_):
 
 ![plot of chunk unnamed-chunk-17](/img/fst_0.8.0/img/fig-unnamed-chunk-17-1.png)
 _Figure 3: Read and write speed of csv files as measured for packages data.table, readr and utils (base R)_
@@ -196,17 +196,16 @@ The _csv_ format is a common data exchange format that is widely supported by co
 
 Despite these obvious advantages, there are some things you can't do with _csv_ but you can by using the _fst_ (binary) format:
 
-* A _csv_ file can't be compressed, so in general it will take more disk space than a _fst_ file.
 * With a _csv_ it's hard to read a single column of data without parsing the rest of the information in the rows (because the _csv_ format is _row-oriented_). By contrast, the _fst_ format is column-oriented (as is the _feather_ format) so selecting specific columns requires no overhead.
 * Reading a selection of rows from a _csv_ requires searching the file for line-ends. That means you can never have true random-access to a _csv_ file (a search algorithm is needed). In _fst_, meta data is stored that allows for the exact localization of any (compressed) element of a dataset, enabling full random-access.
-* You can't add columns to a _csv_ file without re-writing the entire file.
-* You can't store information from memory to _csv_ (and vice versa) without first (de-)parsing to human-readable format. On other words, no zero-copy storage is possible. The _fst_ format is a zero-copy format and in general no parsing is required to transfer data to and from memory (except for (de-)compression).
+* You can't add columns to a _csv_ file without rewriting the entire file.
+* You can't store information from memory to _csv_ (and vice versa) without first (de-)parsing to human-readable format. On other words, no zero-copy storage is possible. The _fst_ format is a zero-copy format and in general no parsing is required to transfer data to and from memory, except for (de-)compression.
 
 To sum up, this all means that storing your data with _fst_ will in general be faster and more compact than storing your data in a _csv_ file, but the resulting _fst_ file will be less portable and non human-readable. Whether you are best of using a _csv_ or _fst_ file depends on your specific use case. _csv_ is king especially for small datasets where the serialization performance is already adequate. But if you need more speed, more compact files or random access, _fst_ can help you with that.
 
 # How compression helps to increase performance
 
-The maximum read- and write speeds of a (solid state-) disk are a given. Any read or write operations to and from disk are bound by those maximum speeds, there's not much you can do about that (except buy a faster disk).
+The maximum write- and read speeds of a (solid state-) disk are a given. Any write- or read operation to and from disk will be bound by that maximum speed, there's not much you can do about that (except buy a faster disk).
 
 However, the amount of data that goes back and forth between the disk and your computer memory can be reduced by using compression. If you compress your data with, let's say, a factor of two, the disk will probably spent about half the time on reading or writing that data (**less data == more speed**). The downside is that the compression itself will also take CPU time, so there is a trade-off there that depends on the speed of the disk and the CPU speed.
 
