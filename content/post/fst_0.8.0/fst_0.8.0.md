@@ -11,7 +11,6 @@ tags:
 - compression
 - serialization
 - fst package
-- hashing
 - benchmark
 thumbnailImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1512862863/parallel2_i7p1pu.png
 thumbnailImagePosition: left
@@ -19,7 +18,6 @@ categories:
 - R
 - compression
 - serialization
-- hashing
 - benchmark
 - fst package
 ---
@@ -154,7 +152,7 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.3022611
+## [1] 0.3017435
 ```
 
 The file size is about 30 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
