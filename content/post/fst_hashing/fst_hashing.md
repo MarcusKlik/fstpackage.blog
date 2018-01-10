@@ -55,6 +55,8 @@ To calculate the hash value of data contained in the _raw\_vec_ vector, we use:
 
 
 ```r
+library(fst)
+
 hash_fst(raw_vec)
 ```
 

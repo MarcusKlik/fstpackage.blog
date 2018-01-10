@@ -137,7 +137,7 @@ There are many use cases where you compress your data only once but decompress i
 
 Also, when operating from a disk that has a lower speed than the (de-)compression algorithm, compression can really help. For those cases, compression will actually increase the total transfer speed because (much) less data has to be moved to or from the disk. This is also the main reason why _fst_ is able to serialize a dataset at higher speeds than the physical limits of a drive.
 
-(Please take a look at [this post](/2017/12/fst_0.8.0/) to get an idea of how that works exactly)
+(Please take a look at [this post](/2018/01/fst_0.8.0/) to get an idea of how that works exactly)
 
 
 # Benchmark code

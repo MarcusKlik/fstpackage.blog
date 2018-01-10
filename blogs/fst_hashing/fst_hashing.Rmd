@@ -52,7 +52,9 @@ raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte cont
 
 To calculate the hash value of data contained in the _raw\_vec_ vector, we use:
 
-```{r}
+```{r, message=FALSE}
+library(fst)
+
 hash_fst(raw_vec)
 ```
 
@@ -109,6 +111,8 @@ bench <- rbindlist(bench)
 The computer used for the benchmark has two Xeon E5 CPU's (@2.5GHz) with 10 physical cores each. The results are displayed below:
 
 ```{r, echo = FALSE, warning = FALSE, fig.path = "img/fig-", fig.width = 10, echo = FALSE}
+library(ggplot2)
+
 hash_timings <- rbindlist(list(
   data.table(Threads = 0, Speed = 0),
   hash_timings

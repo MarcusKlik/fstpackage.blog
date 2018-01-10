@@ -154,7 +154,7 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.3044781
+## [1] 0.3022611
 ```
 
 The file size is about 30 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
