@@ -20,13 +20,9 @@ categories:
 
 The _fst_ package uses LZ4 and ZSTD to compress columnar data. In the latest release, methods _compress\_fst_ and _decompress\_fst_ were added which allow for direct (multi-threaded) access to these excellent compressors.
 
-```{r, results='asis', echo=FALSE}
-cat("<!--more-->\n\n")
-```
+<!--more-->
 
-```{r, results='asis', echo=FALSE}
-cat("<!-- toc -->\n\n")
-```
+<!-- toc -->
 
 # LZ4 and ZSTD
 
@@ -36,12 +32,10 @@ cat("<!-- toc -->\n\n")
 
 From version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ are available in the package. These methods give you direct access to LZ4 and ZSTD. As an example of how they can be used, we download a 90 MB file [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) and recompress it using ZSTD:
 
-```{r, echo = FALSE, results = 'hide', message = FALSE}
-library(fst)
-threads_fst(8)  # use 8 threads
-```
 
-```{r}
+
+
+```r
 library(fst)
 
 # you can download this file from https://www.kaggle.com/stackoverflow/so-survey-2017
@@ -61,9 +55,14 @@ writeBin(compressed_vec, compressed_file)
 file.size(sample_file) / file.size(compressed_file)
 ```
 
-using a ZSTD compression level of 20 percent, the contents of the _csv_ file are compressed to about `r round(100 * length(compressed_vec) / length(raw_vec))` percent of the original size (calculated as the inverse of the compression ratio). To decompress the generated compressed file again you can do:
+```
+## [1] 8.949771
+```
 
-```{r}
+using a ZSTD compression level of 20 percent, the contents of the _csv_ file are compressed to about 11 percent of the original size (calculated as the inverse of the compression ratio). To decompress the generated compressed file again you can do:
+
+
+```r
 # read compressed file into a raw vector
 compressed_vec <- readBin(compressed_file, "raw", file.size(compressed_file))
 
@@ -73,7 +72,8 @@ raw_vec_decompressed <- decompress_fst(compressed_vec)
 
 A nice feature of _data.table_'s _fread_ method is that it can parse in-memory data directly. That means that we can easily feed our raw vector to _fread_:
 
-```{r}
+
+```r
 library(data.table)
 
 # read dataset from the in-memory csv
@@ -86,7 +86,8 @@ This effectively reads your _data.table_ from a compressed file, which saves dis
 
 Methods _compress\_fst_ and _decompress\_fst_ use a fully multi-threaded implementation of the LZ4 and ZSTD algorithms. This is accomplished by dividing the data into (at maximum) 48 blocks, which are then processed in parallel. This increases the compression and decompression speeds significantly at a small cost to compression ratio:
 
-```{r, eval = FALSE, results = 'hide'}
+
+```r
 library(microbenchmark)
 
 threads_fst(8)  # use 8 threads
@@ -107,68 +108,25 @@ cat("Compress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(compress_time$
     "Decompress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(decompress_time$time), "MB/s")
 ```
 
-```{r, echo = FALSE}
-library(microbenchmark)
-library(data.table)
 
-bench <- readRDS("comp_res_laptop.rds")
-measurement <- bench[Level == 10 & Threads == 8]
-
-compress_speed <- as.numeric(object.size(raw_vec)) / measurement[Mode == "Compress", Time]
-decompress_speed <- as.numeric(object.size(raw_vec)) / measurement[Mode == "Decompress", Time]
-
-compresion_factor <- length(raw_vec) / measurement[, mean(Size)]  # compression ratio
-
-cat("Compress: ", 1e3 * compress_speed, "MB/s",
-    "Decompress: ", 1e3 * decompress_speed, "MB/s")
+```
+## Compress:  1299.649 MB/s Decompress:  1948.932 MB/s
 ```
 
-That's a ZSTD compression speed of around `r round(10 * compress_speed) / 10` GB/s!
+That's a ZSTD compression speed of around 1.3 GB/s!
 
 # Bring on the cores
 
 With more cores, you can do more parallel compression work. When we do the compression and decompression measurements above for a range of thread and compression level settings, we find the following dependency between speed and parallelism:
 
-```{r, echo = FALSE,  fig.path = "img/fig-", fig.width = 10, echo = FALSE}
-library(ggplot2)
-
-bench[, Speed := 1e3 * object.size(raw_vec) / Time]
-bench[, Level := as.factor(Level)]
-
-ggplot(bench) +
-  geom_line(aes(Threads, Speed, colour = Level), size = 1.2) +
-  geom_point(aes(Threads, Speed, colour = Level), size = 2) +
-  facet_wrap(~Mode) +
-  theme_minimal() +
-  ylab("Speed (MB/s)")
-```
+![plot of chunk unnamed-chunk-9](/img/fst_compression/img/fig-unnamed-chunk-9-1.png)
 _Figure 1: Compression and decompression speeds vs the number of cores used for computation_
 
 The code that was used to obtain these results is given in the last paragraph. As can be expected, the compression speed is highest for lower compression level settings. But interesting enough, decompression speeds actually increase with higher compression settings! For the highest levels, ZSTD decompression speeds of more than 3 GB/s were measured in our experiment!
 
 Different compression levels settings lead to different compression ratio's. This relation is depicted below. For completeness, LZ4 compression ratio's were added as well:
 
-```{r, echo = FALSE,  fig.path = "img/fig-", fig.width = 10, echo = FALSE}
-bench_zstd <- bench[, .(Level, Size)][, Compressor := "ZSTD"]
-bench_lz4 <- readRDS("comp_res_lz4.rds")[, .(Level, Size)][, Compressor := "LZ4"]
-
-bench <- rbindlist(list(bench_zstd, bench_lz4))
-
-bench[, Ratio := object.size(raw_vec) / Size]
-bench[, Level := as.numeric(as.character(Level))]
-
-ratios <- bench[, .(Ratio = median(Ratio)), by = "Level,Compressor"]
-
-ggplot(ratios) +
-  geom_point(data = ratios[Level == 20 & Compressor == "ZSTD"],
-    aes(Level, Ratio), size = 7, colour = "darkgrey") +
-  geom_point(data = ratios[Level == 20 & Compressor == "ZSTD"],
-    aes(Level, Ratio), size = 7, shape = 1) +
-  geom_line(aes(Level, Ratio), size = 1.2) +
-  geom_point(aes(Level, Ratio), size = 2) +
-  facet_wrap(~Compressor) +
-  theme_minimal()
-```
+![plot of chunk unnamed-chunk-10](/img/fst_compression/img/fig-unnamed-chunk-10-1.png)
 _Figure 2: Compression ratio for different settings of the compression level_
 
 The highlighted point at a 20 percent (ZSTD) compression level corresponds to the measurement that we did earlier. It's clear from the graph that with a combination of LZ4 and ZSTD, a wide range of compression ratio's (and speeds) is available to the user.
@@ -186,7 +144,8 @@ Also, when operating from a disk that has a lower speed than the (de-)compressio
 
 Below is the benchmark script that was used to obtain the dependency graph for the number of cores and compression level.
 
-```{r, eval = FALSE}
+
+```r
 library(data.table)
 
 # benchmark results

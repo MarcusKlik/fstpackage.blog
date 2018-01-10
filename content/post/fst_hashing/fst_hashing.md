@@ -22,14 +22,10 @@ categories:
 
 The _fst_ package uses the xxHash algorithm for internal hashing of (meta-)data. With method _hash\_fst_ the user now has direct access to this extremely fast hashing algorithm.
 
-```{r, results='asis', echo=FALSE}
-cat("<!--more-->\n\n")
-```
+<!--more-->
 
 
-```{r, results='asis', echo=FALSE}
-cat("<!-- toc -->\n\n")
-```
+<!-- toc -->
 
 # Hashing
 
@@ -41,7 +37,8 @@ For hashing in _fst_ the excellent and speedy [xxHash](http://cyan4973.github.io
 
 To demonstrate the _hash\_fst_ interface, we use a 93 MB file downloaded [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017).
 
-```{r}
+
+```r
 # file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017
 sample_file <- "survey_results_public.csv"
 raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte contents 
@@ -50,21 +47,27 @@ raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte cont
 1e-6 * file.size(sample_file)
 ```
 
+```
+## [1] 93.09709
+```
+
 To calculate the hash value of data contained in the _raw\_vec_ vector, we use:
 
-```{r}
+
+```r
 hash_fst(raw_vec)
+```
+
+```
+## [1]  1853499107 -1914678989
 ```
 
 The return value is a length two integer vector because the hashing algorithm is actually a 64-bit hashing algorithm (and a single integer occupies 32 bits in memory). Based on the already fast xxHash algorithm, the speed of the multi-threaded hash implementation in _fst_ is pretty extreme:
 
-```{r, results = 'hide', echo = FALSE}
-library(data.table)
 
-hash_timings <- readRDS("hash_bench.rds")
-```
 
-```{r, eval = FALSE}
+
+```r
 threads_fst(8)
 
 hash_timing <- microbenchmark(
@@ -76,17 +79,23 @@ hash_timing <- microbenchmark(
 as.numeric(object.size(raw_vec)) / median(hash_timing$time)
 ```
 
-```{r}
+
+```r
 hash_timings[Threads == 8, Speed]
 ```
 
-That's a hashing speed of more than `r as.integer(hash_timings[Threads == 8, Speed])` GB/s!
+```
+## [1] 46.72303
+```
+
+That's a hashing speed of more than 46 GB/s!
 
 # Dependency on number of cores
 
 With a small benchmark, we can reveal how the multi-threaded hashing depends on the selected number of cores:
 
-```{r, eval = FALSE}
+
+```r
 library(data.table)
 
 # result table
@@ -108,19 +117,7 @@ bench <- rbindlist(bench)
 
 The computer used for the benchmark has two Xeon E5 CPU's (@2.5GHz) with 10 physical cores each. The results are displayed below:
 
-```{r, echo = FALSE, warning = FALSE, fig.path = "img/fig-", fig.width = 10, echo = FALSE}
-hash_timings <- rbindlist(list(
-  data.table(Threads = 0, Speed = 0),
-  hash_timings
-))
-
-ggplot(hash_timings) +
-  geom_smooth(data = hash_timings[Threads < 16], aes(Threads, Speed), method = 'loess', se = FALSE) +
-  geom_point(aes(Threads, Speed)) +
-  theme_minimal() +
-  ylab("Speed (GB/s)") +
-  ylim(0, 50)
-```
+![plot of chunk unnamed-chunk-9](/img/fst_hashing/img/fig-unnamed-chunk-9-1.png)
 _Figure 1: hashing speed vs the number of cores used for computation_
 
 

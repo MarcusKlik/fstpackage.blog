@@ -13,14 +13,13 @@
 # use grunt task `build` to synchronize assets
 
 ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$", "\\.fst$", "\\.R$"]
-# baseURL = "http://blog.fstpackage.org/"
-baseURL="https://peaceful-kirch-6b7d79.netlify.com/"
+baseURL="https://compassionate-davinci-793.netlify.com/"
 languageCode = "en-us"
 defaultContentLanguage = "en-us"
 title = "Blog - Data Science and the fst Package"
 theme = "hugo-tranquilpeak-theme"
 disqusShortname = "markklik"
-googleAnalytics = "no key"
+googleAnalytics = "UA-111250101-2"
 paginate = 7
 canonifyurls = true
 

@@ -1,7 +1,7 @@
 ---
 title: "Lightning fast serialization of datasets using the fst package"
 author: "Mark Klik"
-date: '2017-12-16'
+date: '2018-01-10'
 coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg
 editor_options:
   chunk_output_type: console
@@ -32,7 +32,6 @@ cat("<!--more-->\n\n")
 
 This post covers some of the enhancements that have been made to _fst_ in the latest release and measures the performance against the serialization methods offered by packages _feather_ and by _base R_ itself. A parallel is drawn with the multi-threading enhancements recently added to _data.table_'s methods _fread_ and _fwrite_ for working with  _csv_ files. Also, some words on how and when to best use the _fst_ binary format to benefit your workflow and speed up your calculations (and when not).
 
-
 ```{r, results='asis', echo=FALSE}
 cat("<!-- toc -->\n\n")
 ```
@@ -43,7 +42,7 @@ For a few years now, solid state disks (SSD's) have been getting larger in capac
 
 The _fst_ package aims to provide a solution for storing data frames on modern SSD's at the highest possible speed. It uses multiple threads and compression to achieve speeds that can top even the fastest consumer SSD's that are currently available. At the same time, the _fst_ file format was designed as a random access format from the ground up. This offers a lot of flexibility and allows reading subsets of data frames (both columns and rows) at high speeds.
 
-Below you can see just how fast _fst_ is. The benchmark was performed on a laptop with a mid range CPU (i7 4710HQ @2.5 GHz) and a reasonably fast (NVME) SSD (M.2 Samsung SM951). The datasets used for measurement were generated on the fly and consists of various column types (as defined below). The number of threads (were appropriate) was set to 8.
+Below you can see just how fast _fst_ is. The benchmark was performed on a laptop with a mid range CPU (i7 4710HQ @2.5 GHz) and a reasonably fast (NVME) SSD (M.2 Samsung SM951). The datasets used for measurement were generated on the fly and consists of various column types (the dataset is defined below). The number of threads (were appropriate) was set to 8.
 
 <br>
 
@@ -59,7 +58,7 @@ speed_results[Package == "feather", Threads := 8]
 
 speeds <- speed_results[Threads == 8, list(`Time (sec)` = as.integer(median(Time) / 10) / 100,
   `Size (MB)` = as.integer(median(Size)), `Speed (MB/s)` = as.integer(median(Speed)),
-  `File Size (MB)` = as.integer(median(FileSize)), N = .N),
+  `File Size (MB)` = as.integer(median(FileSize))),
   by = "Package,Mode"]
 
 speeds[Package == "data.table" & Mode == "Write", Method := "fwrite"]
@@ -84,13 +83,13 @@ for (col in colnames(display_speeds)[2:ncol(display_speeds)]) {
   setnames(display_speeds, "CurCol", col)
 }
 
-kable(display_speeds[Format != "csv", c(8, 9, 3, 4, 6, 5, 7)])
+kable(display_speeds[Format != "csv", c(7, 8, 3, 4, 6, 5)])
 ```
 _Table 1: read and write performance of fst, feather and baseR binary formats_
 
 The table compares method _write\_fst_ to it's counterparts _write\_feather_ and _saveRDS_. Method _read\_fst_ is compared to it's counterparts _read\_feather_ and _readRDS_. For _saveRDS_, the uncompressed mode was selected because the compressed mode is very slow (a few MB/s only).
 
-As can be seen, a write speed of more than `r as.integer(0.01 * speeds[Package == "fst" & Mode == "Write", "Speed (MB/s)", with = FALSE]) / 10` GB/s was measured for _write\_fst_. That speed is even higher than the speed reported in the drive's specifications! 
+As can be seen, a write speed of more than `r as.integer(0.01 * speeds[Package == "fst" & Mode == "Write", "Speed (MB/s)", with = FALSE]) / 10` GB/s was measured for _write\_fst_. That speed is higher than the speed reported in the drive's specifications (about 1.2 GB/s) due to the magic of compression. Because data is compressed before it's written to disk, there is less actual data transported from the CPU to the SSD, greatly boosting write (and read) speeds.
 
 After introducing some of the basic features of _fst_, we will get back to these benchmarks and take a look at how the package uses a combination of multi-threading and compression to effectively boost the performance of data frame serialization.
 
@@ -104,7 +103,7 @@ library(fst)
 write_fst(df, "sampleset.fst")  # write using default compression
 ```
 
-This writes data frame _df_ to a _fst_ file using the default compression setting of 50 percent. To retrieve the stored data:
+This writes data frame _df_ to a _fst_ file using the default compression setting of 50 percent. If _df_ is a _data.table_, the key columns (if any) are also preserved. To retrieve the stored data:
 
 ```{r, eval = FALSE}
 df_read <- read_fst("sampleset.fst")  # read a fst file
@@ -124,7 +123,7 @@ fst_time <- speeds[Package == "fst" & Mode == "Read", max(`Time (sec)`)]
 
 This reads rows 1000 to 2000 from columns _A_ and _B_ without actually touching any other data in the stored file. That means that a subset can be read from file **without reading the complete file first**. This is different from, say, _readRDS_ or _read\_feather_ where you have to read the complete file or column before you can make a subset.
 
-This 'on-disk subsetting' takes less memory, because memory is only allocated for columns and rows that are actually read from disk. So even with a _fst_ file that is much larger than the amount of RAM in your computer, you can still read a subset without running out of memory!
+This 'on-disk subsetting' takes less memory, because memory is only allocated for columns and rows that are actually read from disk. Even with a _fst_ file that is much larger than the amount of RAM in your computer, you can still read a subset without running out of memory!
 
 The graph below depicts the relation between the read time and the amount of rows selected from a 50 million row _fst_ file. As you can see, the average read time grows with the amount of rows selected. Reading all 50 million rows takes around `r fst_time` seconds, the value reported in the table in the introduction.
 
@@ -133,7 +132,7 @@ library(ggplot2)
 
 random_bench <- read_fst("random-res.fst", as.data.table = TRUE)
 
-fig_results <- random_bench[, .(`Time (sec)` = 1e-6 * mean(Time)), by = "Rows"]
+fig_results <- random_bench[, .(`Time (sec)` = 1e-9 * mean(Time)), by = "Rows"]
 fig_results[, `Million rows` := 1e-6 * Rows]
 
 ggplot(fig_results) +
@@ -142,6 +141,7 @@ ggplot(fig_results) +
   theme_minimal() +
   xlab("Number of rows read (millions)")
 ```
+_Figure 1: Time required for reading a subset of a stored dataset_
 
 # Some basic speed measurements
 
@@ -194,19 +194,19 @@ as.numeric(object.size(df)) / write_speed$time
 fst_speed$Speed / 1000
 ```
 
-So how can the measured write speed (about `r as.integer(fst_speed$Speed / 100) / 10` GB/s) be so much higher than the maximum write speed of the SSD used (about 1.2 GB/s)? The explanation is that the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame (and **less data == more speed**):
+As we saw earlier, the measured write speed (about `r as.integer(fst_speed$Speed / 100) / 10` GB/s) is much higher than the maximum write speed of the SSD. This is possible because the actual amount of bytes that where pushed to the SSD is lower than the in-memory size of the data frame because of the compression used (**less data == more speed**):
 
 ```{r}
 # compression ratio:
 as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
-So the file size is about `r as.integer(100 * as.numeric(file.size("sampleset.fst") / object.size(df)))` percent of the original data frame size. This reduced file size is the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
+The file size is about `r round(100 * as.numeric(file.size("sampleset.fst") / object.size(df)))` percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
 
 
 # Multi-threading
 
-Like _data.table_, the _fst_ package uses multiple threads to read and write data. So how does the number of threads affect the performance? You can tune multithreading with:
+Like _data.table_, the _fst_ package uses multiple threads to read and write data. So how does the number of threads affect the performance? You can tune multi-threading with:
 
 ```{r, eval = FALSE}
 threads_fst(8)  # allow fst to use 8 threads
@@ -234,30 +234,28 @@ ggplot(fig_results) +
   ylab("Read or write speed in GB/s") +
   theme_minimal()
 ```
+_Figure 2: Binary read and write speed for packages fst, feather and for base R_
+
 
 ```{r, echo = FALSE}
 max_speed <- fig_results[Mode == "Write" & Speed == max(Speed)]
 max_speed[, Speed := as.integer(10 * Speed) / 10]
 ```
 
-The effects of multi-threading are quite obvious and _fst_ does well in both reading and writing (note that the bar corresponding to _Threads == 1_ is basically _fst_ before version 0.8.0). A top write speed of `r max_speed$Speed[1]` GB/s was measured using `r max_speed$Threads[1]` threads. My laptop only has 4 physical cores, but increasing beyond 4 threads still increases performance (apparently hyperthreading does work in some cases :-)).
+The effects of multi-threading are quite obvious and _fst_ does well in both reading and writing (note that the bar corresponding to _Threads == 1_ is basically _fst_ before version 0.8.0). A top write speed of `r max_speed$Speed[1]` GB/s was measured using `r max_speed$Threads[1]` threads. My laptop only has 4 physical cores, but increasing beyond 4 threads still increases performance (hyper threading does work in some cases :-)).
 
 > The measured read speeds are lower than the write speeds although the SSD has a higher read throughput according to the specifications. This probably means that there is room for some more improvements on the read speeds when the code is further optimized.
 
-The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files:
+The way _fst_ uses multiple threads to do background processing is similar to how the _data.table_ packages employs multiple threads to parse and write _csv_ files. Below is a graph comparing _fread_/_fwrite_ to it's counterparts _read.csv2_/_write.csv2_ (package _utils_) and _read\_csv_/_write\_csv_ (package _readr_):
 
 ```{r, fig.path = "img/fig-", fig.width = 10, echo = FALSE}
-csv_results <- read_fst("csv_writers.fst", as.data.table = TRUE)
-csv_results[, .(Speed = median(Speed)), by = "Package,Mode,Threads,NrOfRows"]
+csv_bench <- read_fst("csv_bench.fst", as.data.table = TRUE)
+csv_bench[!(Package == "data.table"), Threads := 1]
+csv_bench[, Threads := as.factor(Threads)]
+csv_bench[, NrOfRows := ifelse(NrOfRows == 1e7, "10 million rows", "50 million rows")]
 
-[Package != "data.table"]
-bench_results[Package %in% c("baseR", "feather"), Threads := 1]
-bench_results[, Threads := as.factor(Threads)]
-bench_results[, Speed := 0.001 * Speed]
-bench_results[, NrOfRows := ifelse(NrOfRows == 1e7, "10 million rows", "50 million rows")]
-
-
-fig_results <- bench_results[, .(Speed = median(Speed)), by = "Package,Mode,NrOfRows,Threads"]
+fig_results <- csv_bench[, .(Speed = median(Speed), FileSpeed = median(FileSpeed)),
+  by = "Package,Mode,Threads,NrOfRows"]
 
 ggplot(fig_results) +
   geom_bar(aes(Package, Speed, fill = Threads),
@@ -267,19 +265,32 @@ ggplot(fig_results) +
   ylab("Read or write speed in GB/s") +
   theme_minimal()
 ```
+_Figure 3: Read and write speed of csv files as measured for packages data.table, readr and utils (base R)_
 
+The _data.table_ package is an order of magnitude faster than the competing solutions from _utils_ and _readr_. Even when only a single thread is used, the speed difference is quite large. This is all due to the excellent work of the people working on the _data.table_ package. The parallel implementations of _fwrite_ and _fread_ were created recently and they are clearly very fast, an impressive piece of work!
 
-Next to _fst_ there is another clear winner in this graph, and that is the _data.table_ package with it's methods _fwrite_ and _fread_. It stands out because the _csv_ file  format is not a binary format but a human-readable text format! Normally, binary formats would be much faster than the _csv_ format, because _csv_ takes more space on disk, is row based, uncompressed and needs to be parsed into a computer-native format to have any meaning. So any serializer that's working on _csv_ has an enormous disadvantage as compared to binary formats. Yet, the results show that _data.table_ is on par with binary formats and when more threads are used, it can even be faster. This is all due to the excellent work of the people working on the _data.table_ package. They recently created parallel implementations of _fwrite_ and _fread_ and they are very fast, an impressive piece of work!
+# When to use the _fst_ format and when to stick with _csv_
+
+The _csv_ format is a common data exchange format that is widely supported by consumer, business, and scientific applications. It's human-readable, can be edited with a simple text editor and can be used cross-platform and cross-language. And if you use the _data.table_ package to read and write your _csv_, it's fast as well.
+
+Despite these obvious advantages, there are some things you can't do with _csv_ but you can by using the _fst_ (binary) format:
+
+* With a _csv_ it's hard to read a single column of data without parsing the rest of the information in the rows (because the _csv_ format is _row-oriented_). By contrast, the _fst_ format is column-oriented (as is the _feather_ format) so selecting specific columns requires no overhead.
+* Reading a selection of rows from a _csv_ requires searching the file for line-ends. That means you can never have true random-access to a _csv_ file (a search algorithm is needed). In _fst_, meta data is stored that allows for the exact localization of any (compressed) element of a dataset, enabling full random-access.
+* You can't add columns to a _csv_ file without rewriting the entire file.
+* You can't store information from memory to _csv_ (and vice versa) without first (de-)parsing to human-readable format. On other words, no zero-copy storage is possible. The _fst_ format is a zero-copy format and in general no parsing is required to transfer data to and from memory, except for (de-)compression.
+
+To sum up, this all means that storing your data with _fst_ will in general be faster and more compact than storing your data in a _csv_ file, but the resulting _fst_ file will be less portable and non human-readable. Whether you are best of using a _csv_ or _fst_ file depends on your specific use case. _csv_ is king especially for small datasets where the serialization performance is already adequate. But if you need more speed, more compact files or random access, _fst_ can help you with that.
 
 # How compression helps to increase performance
 
-The maximum read- and write speeds of your computer's (solid state-) disk are a given. Any read or write operations to and from disk are bound by those maximum speeds, there's not much you can do about that (except buy a faster disk).
+The maximum write- and read speeds of a (solid state-) disk are a given. Any write- or read operation to and from disk will be bound by that maximum speed, there's not much you can do about that (except buy a faster disk).
 
 However, the amount of data that goes back and forth between the disk and your computer memory can be reduced by using compression. If you compress your data with, let's say, a factor of two, the disk will probably spent about half the time on reading or writing that data (**less data == more speed**). The downside is that the compression itself will also take CPU time, so there is a trade-off there that depends on the speed of the disk and the CPU speed.
 
 How does that work? Suppose a disk has an extremely high speed, then any amount of compression will lower the total speed of writing data to that disk. On the other hand, when the disk has a very low speed (say a network drive), any amount of compression would actually increase the total speed. Most setups will have maximum performance somewhere in between.
 
-To shift the balance, the _fst_ package uses multithreading to compress data 'in the background', so while the disk is busy writing data. Using that setup, it's possible to saturate your disk and still compress data, effectively increasing the observed write (and read) speed. The figure below shows how compression impacts the performance of reading and writing data to disk.
+To shift the balance, the _fst_ package uses multi-threading to compress data 'in the background', so while the disk is busy writing data. Using that setup, it's possible to saturate your disk and still compress data, effectively increasing the observed write (and read) speed. The figure below shows how compression impacts the performance of reading and writing data to disk.
 
 ```{r, fig.path = "img/fig-", fig.width = 10, echo = FALSE}
 comp_res <- read_fst("compress-res.fst", as.data.table = TRUE)[Compress != 1]
@@ -296,14 +307,15 @@ nr_of_levels <- length(unique(fig_results$Compress))
 ggplot(fig_results) +
   geom_bar(aes(`Number of threads used`, `Speed (MB/s)`, fill = Compression, colour = IsFst),
            stat = "identity", position = "dodge") +
-  facet_grid(Mode ~ NrOfRows, scales = "free_y") +
+  facet_grid(Mode ~ ., scales = "free_y") +
   scale_color_manual(values = c("darkblue", "black"), guide = FALSE) +
   scale_fill_manual(values = colorRampPalette(c("#FBE3A5",
     "#433B54"))(nr_of_levels + 2)[(nr_of_levels + 2):3]) +
   theme_minimal()
 ```
+_Figure 4: Compression and decompression speed depends on compression level settings_
 
-These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20 physical cores. With more cores, it's easier to see the scaling effects. The horizontal groups in the figure represent the different amount of threads used (4, 8, 10 and 20). Vertically we have the read and write speeds. The colors represent various compression settings in the range of 0 to 100 (so not the number of threads like in the previous graph). Compression helps a lot to increase the write speed. If enough cores are used, the background compression can keep up with the SSD and the total write speed will increase accordingly (**less data == more speed**). The same could be expected to be true for the read speed. The effects seem to be minimal however and some more thinking is required to bring the read speed at the same level as the write speed (perhaps we need parallel file connections, larger read blocks or different multi-threading logic? [ideas are very welcome](https://github.com/fstpackage/fst/issues) :-)).
+These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20 physical cores (with more cores, it's easier to see the scaling effects). The horizontal groups in the figure represent the different amount of threads used (4, 8, 10 and 20). Vertically we have the read and write speeds. The colors represent various compression settings in the range of 0 to 100 (so not the number of threads like in the previous graph). Compression helps a lot to increase the maximum write speed. If enough cores are used, the background compression can keep up with the SSD and the total write speed will increase accordingly (**less data == more speed**). The same could be expected to be true for the read speed. The effects seem to be minimal however and some more thinking is required to bring the read speed at the same level as the write speed (perhaps we need parallel file connections, larger read blocks or different multi-threading logic? [ideas are very welcome](https://github.com/fstpackage/fst/issues) :-)).
 
 # Per-column compression optimalization
 
@@ -311,116 +323,18 @@ The _fst_ package uses the excellent [LZ4](http://lz4.github.io/lz4/) compressor
 
 > Note: there is still much work to be done to further optimize these compression schemes. The current version of the _fst_ package is using 'best (first) guess schemes'. Following more elaborate benchmarks in the future, these schemes will be fine-tuned for better performance and new compressors could also be added (such as dictionary based compressors optimized for text or bit-packing compressors for integers).
 
-All compression settings in _fst_ are set as a value between 0 and 100 ('a percentage'). That percentage is translated into a mix of compression settings for each (16kB) data block. This mix is optimized (or will be :-)) for that particular data type. For example, at a compression setting of 30, data blocks in an integer column are a mix of 40 percent uncompressed blocks and 60 percent blocks compressed with LZ4 + a byte shuffle. The byte shuffle works because we are dealing with an integer column. So we use information about the specific column _type_ to enhance the compression. This is a unique feature of _fst_ that has a huge positive impact on performance.
+All compression settings in _fst_ are set as a value between 0 and 100 ('a percentage'). That percentage is translated into a mix of compression settings for each (16kB) data block. This mix is optimized (and will be more so in the future :-)) for that particular data type. For example, at a compression setting of 30, data blocks in an integer column are a mix of 40 percent uncompressed blocks and 60 percent blocks compressed with LZ4 + a byte shuffle. The byte shuffle is an extra operation applied before compression to speed things up. That only works  because we know we are dealing with an integer column (byte shuffling a character column wouldn't help at all). That means that we can use information about the specific column _type_ to enhance the compression. This is a unique feature of _fst_ that has a huge positive impact on performance.
 
+# More on fst's features
 
-# More new features in fst v0.8.0
+If you're interested in learning more on some of the new features of _fst_, you can also take a look at these posts:
 
-## Separate core library
+* [Multi-threaded compression using LZ4 and ZSTD](/2018/01/fst_compression/)
+* [Multi-threaded hashing with xxHash](/2018/01/fst_hashing/)
+ 
+ 
+# Final note
 
-With this new release, the core C++ code of _fst_ is completely separated from the _fst_ 'R API' (the C++ core library is now called [_fstlib_](https://github.com/fstpackage/fstlib)). Having a separate C++ library opens up the way for other languages to implement the _fst_ format (e.g. Python, Julia, C++).
-
-## Multi-threaded access to LZ4 and ZSTD compressors
-
-The LZ4 and ZSTD compressors can now be used directly using methods _compress\_fst_ and _decompress\_fst_. For example, to compress the csv file  _survey\_results\_public.csv_ [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017) (with data about StackOverflow users), you can use:
-
-```{r, echo = FALSE, results = 'hide'}
-threads_fst(8)  # use 8 threads
-```
-
-```{r}
-# file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017
-sample_file <- "large/survey_results_public.csv"
-raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte contents 
-
-# compress bytes with ZSTD
-compressed_vec <- compress_fst(raw_vec, "ZSTD", 10)
-
-length(compressed_vec) / length(raw_vec)  # compression ratio
-```
-
-This compresses the contents of the _survey\_results\_public.csv_ file to about `r round(100 * length(compressed_vec) / length(raw_vec))` percent of the original size. You can decompress again with:
-
-```{r}
-raw_vec_decompressed <- decompress_fst(compressed_vec)
-```
-
-What's special about the fst implementation is that it's a fully multi-threaded implementation of the underlying compression algorithms, boosting the compression and decompression speeds:
-
-```{r, echo = FALSE, results = 'hide'}
-threads_fst(8)
-```
-
-
-```{r, eval = FALSE, results = 'hide'}
-# compress with LZ4 on maximum compression setting
-compress_time <- microbenchmark(
-  compress_fst(raw_vec, "ZSTD", 10),
-  times = 10
-)
-
-# decompress again
-decompress_time <- microbenchmark(
-  decompress_fst(compressed_vec),
-  times = 10
-)
-
-cat("Compress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(compress_time$time),
-    "Decompress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(decompress_time$time))
-```
-
-```{r, echo = FALSE}
-hash_timings <- readRDS("hash_timings.rds")
-cat("Compress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(hash_timings$compress_time$time),
-    "Decompress: ", 1e3 * as.numeric(object.size(raw_vec)) / median(hash_timings$decompress_time$time))
-```
-
-The measurement was done using `r fst::threads_fst()` threads. Just like with _write\_fst_, compression is done on multiple threads, but there is no optimization for specific types (because the raw input vector can contain any type of data).
-
-## Multi-threaded hashing
-
-The last feature that I would like to mention briefly is the multi-threaded hashing algorithm that has been added to fst v0.8.0:
-
-```{r}
-hash_fst(raw_vec)
-```
-
-The return value is a length two integer vector because the hashing algorithm is actually a 64-bit hashing algorithm. Based on the already fast [xxHash](http://cyan4973.github.io/xxHash/) algorithm, the speed of the multi-threaded hash implementation in _fst_ is pretty extreme:
-
-```{r, eval = FALSE}
-threads_fst(8)
-
-hash_timing <- microbenchmark(
-  hash_fst(raw_vec),
-  times = 1000
-)
-
-# hashing speed (GB/s)
-as.numeric(object.size(raw_vec)) / median(hash_timing$time)
-```
-
-```{r}
-as.numeric(object.size(raw_vec)) / median(hash_timings$hash_timing$time)
-```
-
-That's a hashing speed of more than `r as.integer(as.numeric(object.size(raw_vec)) / median(hash_timings$hash_timing$time))` GB/s !
-
-# Format stable and backwards compatible
-
-With CRAN release v0.8.0, the format is stable and backwards compatible. That means that all _fst_ files generated with _fst_ package v0.8.0 or later can be read by future versions of the package.
-
-# Future plans
-
-Many new features are planned for _fst_ thanks to a lot of requests and idea's from the community (much obliged!), a few examples:
-
-* multi-threaded (de-)serialization of _character_ columns
-* _data.table_ interface
-* row bind data to an existing _fst_ file
-* add columns to an existing _fst_ file
-* on-disk filtering of data with small memory footprint
-* hashing of data blocks for added security
-* encryption
-* fast sampling of a _fst_ file
-* _dplyr_ interface
+With CRAN release v0.8.0, the _fst_ format is stable and backwards compatible. That means that all _fst_ files generated with _fst_ package v0.8.0 or later can be read by future versions of the package.
 
 Thanks for making it to the end of my post (no small task) and for your interest in using _fst_!
