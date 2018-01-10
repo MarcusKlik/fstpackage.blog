@@ -1,5 +1,5 @@
 ---
-title: "Multi-threaded hashing with xxHash"
+title: "Multi-threaded hashing with xxHash from R"
 author: "Mark Klik"
 date: '2018-01-10'
 coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515588830/electronics_p9f4uo.jpg
