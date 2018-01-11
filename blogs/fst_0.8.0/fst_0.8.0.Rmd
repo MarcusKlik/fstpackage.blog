@@ -336,3 +336,5 @@ If you're interested in learning more on some of the new features of _fst_, you 
 With CRAN release v0.8.0, the _fst_ format is stable and backwards compatible. That means that all _fst_ files generated with _fst_ package v0.8.0 or later can be read by future versions of the package.
 
 Thanks for making it to the end of my post (no small task) and for your interest in using _fst_!
+
+> _This post is also available on [R-bloggers](https://www.r-bloggers.com/)_

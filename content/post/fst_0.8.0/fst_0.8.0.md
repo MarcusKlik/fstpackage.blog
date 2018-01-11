@@ -152,10 +152,10 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.2958497
+## [1] 0.2945115
 ```
 
-The file size is about 30 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
+The file size is about 29 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
 
 
 # Multi-threading
@@ -237,3 +237,5 @@ If you're interested in learning more on some of the new features of _fst_, you 
 With CRAN release v0.8.0, the _fst_ format is stable and backwards compatible. That means that all _fst_ files generated with _fst_ package v0.8.0 or later can be read by future versions of the package.
 
 Thanks for making it to the end of my post (no small task) and for your interest in using _fst_!
+
+> _This post is also available on [R-bloggers](https://www.r-bloggers.com/)_
