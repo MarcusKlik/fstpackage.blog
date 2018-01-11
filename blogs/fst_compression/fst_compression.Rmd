@@ -229,3 +229,5 @@ for (level in 10 * 0:10) {
 ```
 
 This creates a _data.table_ with compression and decompression benchmark results.
+
+> _This post is also available on [R-bloggers](https://www.r-bloggers.com/)_

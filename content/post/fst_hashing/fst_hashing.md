@@ -131,3 +131,6 @@ _Figure 2: CPU resources used during benchmark_
 # Single threaded mode
 
 Method _hash\_fst_ has a parameter _block\_hash_ that activates the multi-threaded hashing implementation. For compatibility with the default xxHash algorithm, _block\_hash_ can be set to _FALSE_. With that setting, the single threaded default (64-bit) xxHash mode is used.
+
+> _This post is also available on [R-bloggers](https://www.r-bloggers.com/)_
+
