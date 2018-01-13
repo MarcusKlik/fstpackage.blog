@@ -76,7 +76,7 @@ A nice feature of _data.table_'s _fread_ method is that it can parse in-memory d
 ```r
 library(data.table)
 
-# read dataset from the in-memory csv
+# read data set from the in-memory csv
 dt <- fread(rawToChar(raw_vec_decompressed))
 ```
 
@@ -135,7 +135,7 @@ The highlighted point at a 20 percent (ZSTD) compression level corresponds to th
 
 There are many use cases where you compress your data only once but decompress it much more often. For example, you can compress and store a file that will need to be read many times in the future. In that case it's very useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds during reads and the compressed data will occupy less space.
 
-Also, when operating from a disk that has a lower speed than the (de-)compression algorithm, compression can really help. For those cases, compression will actually increase the total transfer speed because (much) less data has to be moved to or from the disk. This is also the main reason why _fst_ is able to serialize a dataset at higher speeds than the physical limits of a drive.
+Also, when operating from a disk that has a lower speed than the (de-)compression algorithm, compression can really help. For those cases, compression will actually increase the total transfer speed because (much) less data has to be moved to or from the disk. This is also the main reason why _fst_ is able to serialize a data set at higher speeds than the physical limits of a drive.
 
 (Please take a look at [this post](/2018/01/fst_0.8.0/) to get an idea of how that works exactly)
 

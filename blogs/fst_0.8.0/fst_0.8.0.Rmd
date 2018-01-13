@@ -40,7 +40,7 @@ For a few years now, solid state disks (SSD's) have been getting larger in capac
 
 The _fst_ package aims to provide a solution for storing data frames on modern SSD's at the highest possible speed. It uses multiple threads and compression to achieve speeds that can top even the fastest consumer SSD's that are currently available. At the same time, the _fst_ file format was designed as a random access format from the ground up. This offers a lot of flexibility and allows reading subsets of data frames (both columns and rows) at high speeds.
 
-Below you can see just how fast _fst_ is. The benchmark was performed on a laptop with a mid range CPU (i7 4710HQ @2.5 GHz) and a reasonably fast (NVME) SSD (M.2 Samsung SM951). The datasets used for measurement were generated on the fly and consists of various column types (the dataset is defined below). The number of threads (were appropriate) was set to 8.
+Below you can see just how fast _fst_ is. The benchmark was performed on a laptop with a mid range CPU (i7 4710HQ @2.5 GHz) and a reasonably fast (NVME) SSD (M.2 Samsung SM951). The data sets used for measurement were generated on the fly and consists of various column types (the data set is defined below). The number of threads (were appropriate) was set to 8.
 
 <br>
 
@@ -139,11 +139,11 @@ ggplot(fig_results) +
   theme_minimal() +
   xlab("Number of rows read (millions)")
 ```
-_Figure 1: Time required for reading a subset of a stored dataset_
+_Figure 1: Time required for reading a subset of a stored data set_
 
 # Some basic speed measurements
 
-The read and write speed of _fst_ depends on the compression setting and the number of threads used. To get an idea about these dependencies we generate a dataset containing various column types and do some speed measurements:
+The read and write speed of _fst_ depends on the compression setting and the number of threads used. To get an idea about these dependencies we generate a data set containing various column types and do some speed measurements:
 
 ```{r}
 nr_of_rows <- 5e7  # use 50 million rows
@@ -165,7 +165,7 @@ df <-
   )
 ```
 
-This dataset was also used to obtain the benchmark results reported above. To get accurate timings for writing to disk we use the _microbenchmark_ package
+This data set was also used to obtain the benchmark results reported above. To get accurate timings for writing to disk we use the _microbenchmark_ package
 
 ```{r, echo = FALSE, message = FALSE, results = 'hide'}
 library(fst)
@@ -274,11 +274,11 @@ The _csv_ format is a common data exchange format that is widely supported by co
 Despite these obvious advantages, there are some things you can't do with _csv_ but you can by using the _fst_ (binary) format:
 
 * With a _csv_ it's hard to read a single column of data without parsing the rest of the information in the rows (because the _csv_ format is _row-oriented_). By contrast, the _fst_ format is column-oriented (as is the _feather_ format) so selecting specific columns requires no overhead.
-* Reading a selection of rows from a _csv_ requires searching the file for line-ends. That means you can never have true random-access to a _csv_ file (a search algorithm is needed). In _fst_, meta data is stored that allows for the exact localization of any (compressed) element of a dataset, enabling full random-access.
+* Reading a selection of rows from a _csv_ requires searching the file for line-ends. That means you can never have true random-access to a _csv_ file (a search algorithm is needed). In _fst_, meta data is stored that allows for the exact localization of any (compressed) element of a data set, enabling full random-access.
 * You can't add columns to a _csv_ file without rewriting the entire file.
 * You can't store information from memory to _csv_ (and vice versa) without first (de-)parsing to human-readable format. On other words, no zero-copy storage is possible. The _fst_ format is a zero-copy format and in general no parsing is required to transfer data to and from memory, except for (de-)compression.
 
-To sum up, this all means that storing your data with _fst_ will in general be faster and more compact than storing your data in a _csv_ file, but the resulting _fst_ file will be less portable and non human-readable. Whether you are best of using a _csv_ or _fst_ file depends on your specific use case. _csv_ is king especially for small datasets where the serialization performance is already adequate. But if you need more speed, more compact files or random access, _fst_ can help you with that.
+To sum up, this all means that storing your data with _fst_ will in general be faster and more compact than storing your data in a _csv_ file, but the resulting _fst_ file will be less portable and non human-readable. Whether you are best of using a _csv_ or _fst_ file depends on your specific use case. _csv_ is king especially for small data sets where the serialization performance is already adequate. But if you need more speed, more compact files or random access, _fst_ can help you with that.
 
 # How compression helps to increase performance
 
