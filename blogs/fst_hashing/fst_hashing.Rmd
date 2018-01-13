@@ -110,7 +110,7 @@ bench <- rbindlist(bench)
 
 The computer used for the benchmark has two Xeon E5 CPU's (@2.5GHz) with 10 physical cores each. The results are displayed below:
 
-```{r, echo = FALSE, warning = FALSE, fig.path = "img/fig-", fig.width = 10, echo = FALSE}
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.path = "img/fig-", fig.width = 10, echo = FALSE}
 library(ggplot2)
 
 hash_timings <- rbindlist(list(

@@ -1,5 +1,5 @@
 ---
-title: "Lightning fast serialization of datasets using the fst package"
+title: "Lightning fast serialization of data frames using the fst package"
 author: "Mark Klik"
 date: '2018-01-10'
 coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg

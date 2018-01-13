@@ -1,5 +1,5 @@
 ---
-title: "Lightning fast serialization of datasets using the fst package"
+title: "Lightning fast serialization of data frames using the fst package"
 author: "Mark Klik"
 date: '2018-01-10'
 coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg
@@ -152,10 +152,10 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.2945115
+## [1] 0.303679
 ```
 
-The file size is about 29 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
+The file size is about 30 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
 
 
 # Multi-threading
