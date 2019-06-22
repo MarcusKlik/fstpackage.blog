@@ -39,7 +39,7 @@ From version 0.8.0, methods _compress\_fst_ and _decompress\_fst_ are available 
 ```{r, echo = FALSE, results = 'hide', message = FALSE}
 library(fst)
 
-threads_fst(8)  # use 8 threads
+threads_fst(12)  # use 12 threads
 ```
 
 ```{r}

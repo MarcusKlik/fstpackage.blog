@@ -13,13 +13,13 @@
 # use grunt task `build` to synchronize assets
 
 ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$", "\\.fst$", "\\.R$"]
-baseURL="http://blog.fstpackage.org/"
+baseURL="https://mystifying-dubinsky-8d3673.netlify.com/"
 languageCode = "en-us"
 defaultContentLanguage = "en-us"
 title = "Blog - Data Science and the fst Package"
 theme = "hugo-tranquilpeak-theme"
 # disqusShortname = "fst-blog"
-googleAnalytics = "UA-111250101-1"
+googleAnalytics = "no key"
 paginate = 7
 canonifyurls = true
 
@@ -43,8 +43,6 @@ canonifyurls = true
   picture = "https://s.gravatar.com/avatar/5a519684505c88441fad2c246fd655bf"
   # Your Twitter username without the @. E.g : thibaudlepretre
   twitter = "MarkKlik"
-  # Your google plus profile id. E.g : +ThibaudLepretre or 114625208755123718311
-  # googlePlus = "+ThibaudLepretre"
 
 # Menu Configuration
 [[menu.main]]
@@ -204,11 +202,6 @@ canonifyurls = true
     name = "Twitter"
     icon = "fa-twitter"
     url = "https://twitter.com/intent/tweet?text=%s"
-
-  [[params.sharingOptions]]
-    name = "Google+"
-    icon = "fa-google-plus"
-    url = "https://plus.google.com/share?url=%s"
 
   [params.header.rightLink]
     class = ""
