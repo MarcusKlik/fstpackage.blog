@@ -56,7 +56,7 @@ file.size(sample_file) / file.size(compressed_file)
 ```
 
 ```
-## [1] 8.949771
+## [1] 8.949609
 ```
 
 using a ZSTD compression level of 20 percent, the contents of the _csv_ file are compressed to about 11 percent of the original size (calculated as the inverse of the compression ratio). To decompress the generated compressed file again you can do:

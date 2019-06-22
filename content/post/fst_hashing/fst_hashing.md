@@ -42,13 +42,24 @@ To demonstrate the _hash\_fst_ interface, we use a 93 MB file downloaded [from K
 # file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017
 sample_file <- "survey_results_public.csv"
 raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte contents 
+```
 
+```
+## Warning in file(con, "rb"): cannot open file 'survey_results_public.csv':
+## No such file or directory
+```
+
+```
+## Error in file(con, "rb"): cannot open the connection
+```
+
+```r
 # file size (in MB)
 1e-6 * file.size(sample_file)
 ```
 
 ```
-## [1] 93.09709
+## [1] NA
 ```
 
 To calculate the hash value of data contained in the _raw\_vec_ vector, we use:

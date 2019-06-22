@@ -13,7 +13,7 @@ CheckBaseURL <- function() {
     Head =   sapply(branches, function(branch) {
         capture.output(print(branch))
       }))
-  
+
   # get branch name from each head
   branch_name <- function(x) {
     y <- strsplit(x, " ", fixed = TRUE)
@@ -21,10 +21,10 @@ CheckBaseURL <- function() {
       z[length(z)]
     })
   }
-  
+
   # Get branch of head
-  current_branch <- branch_table[regexpr("(HEAD)", Head) != -1, branch_name(Head)]
-  current_branch <- current_branch[current_branch != "HEAD"]
+  branch_table[, BranchName := branch_name(Head)]
+  current_branch <- branch_table[regexpr("(HEAD)", Head) != -1 & BranchName != "HEAD", BranchName]
 
   # Get config.toml file
   toml <- readLines("../config.toml")
@@ -144,7 +144,7 @@ for (blog_name in blog_names) {
 }
 
 
-# blogdown::serve_site()
+blogdown::serve_site()
 
 # blogdown::hugo_version()
 
