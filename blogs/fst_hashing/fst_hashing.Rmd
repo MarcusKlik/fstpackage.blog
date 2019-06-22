@@ -1,63 +1,69 @@
 ---
-title: "Multi-threaded hashing with xxHash"
+title: "Multi-threaded hashing with xxHash from R"
 author: "Mark Klik"
-date: '2017-12-16'
-coverImage: //d1u9biwaxjngwg.cloudfront.net/welcome-to-tranquilpeak/city.jpg
+date: '2018-01-10'
+coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515588830/electronics_p9f4uo.jpg
 editor_options:
   chunk_output_type: console
 metaAlignment: center
 slug: fst_hashing
 tags:
-- compression
-- serialization
 - fst package
 - hashing
 - benchmark
-thumbnailImage: /img/fst_hashing/media/fingerprint.jpg
+thumbnailImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515407395/fingerprint_ecpfcq.jpg
 thumbnailImagePosition: left
 categories:
 - R
-- compression
-- serialization
 - hashing
 - benchmark
 - fst package
 ---
 
-Version 0.8.0 of R's _fst_ package has been released to CRAN. The package is now multi-threaded allowing for even faster serialization of data frames to disk.
+The _fst_ package uses the xxHash algorithm for internal hashing of (meta-)data. With method _hash\_fst_ the user now has direct access to this extremely fast hashing algorithm.
 
 ```{r, results='asis', echo=FALSE}
 cat("<!--more-->\n\n")
 ```
 
-This post covers some of the enhancements that have been made to _fst_ and introduces the new in-memory compression and hashing features. Some benchmarks are shown comparing performance against data frame serialization methods offered by packages _data.table_, _feather_ and by _base R_ itself.
 
 ```{r, results='asis', echo=FALSE}
 cat("<!-- toc -->\n\n")
 ```
 
+# Hashing
 
-## Multi-threaded hashing
+Hashing is used to map data of any size to data of a (usually much smaller) fixed size. That's very useful for creating fast lookup tables, a digital data signature or in cryptography. The _fst_ package hashes all meta-data that is stored in the _fst_ format and will support optional hashing of columnar data as well in the near future. Storing hashes in the format greatly adds to the security and stability as errors in the format can easily be detected by comparing hashes.
+
+For hashing in _fst_ the excellent and speedy [xxHash](http://cyan4973.github.io/xxHash/) algorithm is used, developed by Yann Collet. Method _hash\_fst_ provides direct access to the xxHash library and also includes a multi-threaded variant that hashes at extreme speeds.
+
+# Multi-threaded hashing
+
+To demonstrate the _hash\_fst_ interface, we use a 93 MB file downloaded [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017).
 
 ```{r}
 # file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017
-sample_file <- "large/survey_results_public.csv"
+sample_file <- "survey_results_public.csv"
 raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte contents 
 
 # file size (in MB)
 1e-6 * file.size(sample_file)
 ```
 
-The last feature that I would like to mention briefly is the multi-threaded hashing algorithm that has been added to fst v0.8.0:
+To calculate the hash value of data contained in the _raw\_vec_ vector, we use:
 
-```{r}
+```{r, message=FALSE}
+library(fst)
+
 hash_fst(raw_vec)
 ```
 
-The return value is a length two integer vector because the hashing algorithm is actually a 64-bit hashing algorithm. Based on the already fast [xxHash](http://cyan4973.github.io/xxHash/) algorithm, the speed of the multi-threaded hash implementation in _fst_ is pretty extreme:
+The return value is a length two integer vector because the hashing algorithm is actually a 64-bit hashing algorithm (and a single integer occupies 32 bits in memory). Based on the already fast xxHash algorithm, the speed of the multi-threaded hash implementation in _fst_ is pretty extreme:
 
 ```{r, results = 'hide', echo = FALSE}
-hash_timings <- readRDS("hash_timings.rds")
+library(data.table)
+
+hash_timings <- readRDS("hash_bench.rds")
 ```
 
 ```{r, eval = FALSE}
@@ -73,8 +79,63 @@ as.numeric(object.size(raw_vec)) / median(hash_timing$time)
 ```
 
 ```{r}
-as.numeric(object.size(raw_vec)) / median(hash_timings$time)
+hash_timings[Threads == 8, Speed]
 ```
 
-That's a hashing speed of more than `r as.integer(as.numeric(object.size(raw_vec)) / median(hash_timings$time))` GB/s !
+That's a hashing speed of more than `r as.integer(hash_timings[Threads == 8, Speed])` GB/s!
+
+# Dependency on number of cores
+
+With a small benchmark, we can reveal how the multi-threaded hashing depends on the selected number of cores:
+
+```{r, eval = FALSE}
+library(data.table)
+
+# result table
+bench <- as.list(rep(1, 20))
+
+for (threads in 1:40) {
+  threads_fst(threads)
+  
+  hash_timing <- microbenchmark(
+    hash_fst(raw_vec),
+    times = 1000
+  )
+
+  bench[[threads]] <- data.table(Threads = threads, Time = hash_timing$time)
+}
+
+bench <- rbindlist(bench)
+```
+
+The computer used for the benchmark has two Xeon E5 CPU's (@2.5GHz) with 10 physical cores each. The results are displayed below:
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.path = "img/fig-", fig.width = 10, echo = FALSE}
+library(ggplot2)
+
+hash_timings <- rbindlist(list(
+  data.table(Threads = 0, Speed = 0),
+  hash_timings
+))
+
+ggplot(hash_timings) +
+  geom_smooth(data = hash_timings[Threads < 16], aes(Threads, Speed), method = 'loess', se = FALSE) +
+  geom_point(aes(Threads, Speed)) +
+  theme_minimal() +
+  ylab("Speed (GB/s)") +
+  ylim(0, 50)
+```
+_Figure 1: hashing speed vs the number of cores used for computation_
+
+
+Using more than 8-10 threads doesn't help performance. It's clear that the Xeon is hitting other boundaries than computational speed, such as the maximum memory bandwidth and thread- or CPU synchronization issues. That's also confirmed by the less than 100 percent pressure on CPU resources during the benchmark:
+
+![cpu-graph](/img/fst_hashing/media/cpu.png)
+_Figure 2: CPU resources used during benchmark_
+
+# Single threaded mode
+
+Method _hash\_fst_ has a parameter _block\_hash_ that activates the multi-threaded hashing implementation. For compatibility with the default xxHash algorithm, _block\_hash_ can be set to _FALSE_. With that setting, the single threaded default (64-bit) xxHash mode is used.
+
+> _This post is also available on [R-bloggers](https://www.r-bloggers.com/)_
 

@@ -35,8 +35,8 @@ CheckBaseURL <- function() {
   googleLines <- which(regexpr("googleAnalytics", toml, fixed = TRUE) != -1)
   googleLine <- toml[googleLines[which(substr(toml[googleLines], 1, 1) != "#")]]
   
-  disqusLines <- which(regexpr("disqusShortname", toml, fixed = TRUE) != -1)
-  disqusLine <- toml[disqusLines[which(substr(toml[disqusLines], 1, 1) != "#")]]
+  # disqusLines <- which(regexpr("disqusShortname", toml, fixed = TRUE) != -1)
+  # disqusLine <- toml[disqusLines[which(substr(toml[disqusLines], 1, 1) != "#")]]
 
   if (current_branch == "develop") {
     if (regexpr("https://mystifying-dubinsky-8d3673.netlify.com/", baseLine, fixed = TRUE) == -1) {
@@ -47,9 +47,9 @@ CheckBaseURL <- function() {
       stop("Wrong Google Analytics Key for this branch!")
     }
     
-    if (regexpr("markklik", disqusLine, fixed = TRUE) == -1) {
-      stop("Wrong Disqus for this branch!")
-    }
+    # if (regexpr("markklik", disqusLine, fixed = TRUE) == -1) {
+    #   stop("Wrong Disqus for this branch!")
+    # }
   }
   
   if (current_branch == "preview") {
@@ -61,9 +61,9 @@ CheckBaseURL <- function() {
       stop("Wrong Google Analytics Key for this branch!")
     }
     
-    if (regexpr("markklik", disqusLine, fixed = TRUE) == -1) {
-      stop("Wrong Disqus for this branch!")
-    }
+    # if (regexpr("markklik", disqusLine, fixed = TRUE) == -1) {
+    #   stop("Wrong Disqus for this branch!")
+    # }
   }
   
 
@@ -76,9 +76,9 @@ CheckBaseURL <- function() {
       stop("Wrong Google Analytics Key for this branch!")
     }
     
-    if (regexpr("fst-blog", disqusLine, fixed = TRUE) == -1) {
-      stop("Wrong Disqus for this branch!")
-    }
+    # if (regexpr("fst-blog", disqusLine, fixed = TRUE) == -1) {
+    #   stop("Wrong Disqus for this branch!")
+    # }
   }
 }
 
@@ -88,9 +88,10 @@ CheckBaseURL()
 
 # blogs to compile
 blog_names <- c(
-  # "fst_0.8.0",
-  # "fst_hashing",
-  "fst_compression")
+  "fst_hashing",
+  "fst_compression",
+  "fst_0.8.0"
+  )
 
 for (blog_name in blog_names) {
   
@@ -146,3 +147,4 @@ for (blog_name in blog_names) {
 # blogdown::serve_site()
 
 # blogdown::hugo_version()
+

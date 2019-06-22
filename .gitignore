@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+*.orig
 blogs/*.html
 blogs/large/E.coli
 *.csv
@@ -9,3 +10,4 @@ blogs/large/E.coli
 /blogs/*/img/*.png
 /blogs/fst_0.8.0/sampleset.fst
 *.fsc
+/blogs/sampleset.fst

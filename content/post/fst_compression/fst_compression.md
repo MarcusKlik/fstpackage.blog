@@ -1,8 +1,8 @@
 ---
 title: "Multi-threaded LZ4 and ZSTD compression from R"
 author: "Mark Klik"
-date: '2017-12-16'
-coverImage: /img/fst_compression/media/space_coast.jpg
+date: '2018-01-10'
+coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515406380/space_coast_pf4huz.jpg
 editor_options:
   chunk_output_type: console
 metaAlignment: center
@@ -10,7 +10,7 @@ slug: fst_compression
 tags:
 - fst package
 - compression
-thumbnailImage: /img/fst_compression/media/compression.jpg
+thumbnailImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515407346/compression_h1yrsu.jpg
 thumbnailImagePosition: left
 categories:
 - R
@@ -76,7 +76,7 @@ A nice feature of _data.table_'s _fread_ method is that it can parse in-memory d
 ```r
 library(data.table)
 
-# read dataset from the in-memory csv
+# read data set from the in-memory csv
 dt <- fread(rawToChar(raw_vec_decompressed))
 ```
 
@@ -120,12 +120,14 @@ That's a ZSTD compression speed of around 1.3 GB/s!
 With more cores, you can do more parallel compression work. When we do the compression and decompression measurements above for a range of thread and compression level settings, we find the following dependency between speed and parallelism:
 
 ![plot of chunk unnamed-chunk-9](/img/fst_compression/img/fig-unnamed-chunk-9-1.png)
+_Figure 1: Compression and decompression speeds vs the number of cores used for computation_
 
 The code that was used to obtain these results is given in the last paragraph. As can be expected, the compression speed is highest for lower compression level settings. But interesting enough, decompression speeds actually increase with higher compression settings! For the highest levels, ZSTD decompression speeds of more than 3 GB/s were measured in our experiment!
 
 Different compression levels settings lead to different compression ratio's. This relation is depicted below. For completeness, LZ4 compression ratio's were added as well:
 
 ![plot of chunk unnamed-chunk-10](/img/fst_compression/img/fig-unnamed-chunk-10-1.png)
+_Figure 2: Compression ratio for different settings of the compression level_
 
 The highlighted point at a 20 percent (ZSTD) compression level corresponds to the measurement that we did earlier. It's clear from the graph that with a combination of LZ4 and ZSTD, a wide range of compression ratio's (and speeds) is available to the user.
 
@@ -133,9 +135,9 @@ The highlighted point at a 20 percent (ZSTD) compression level corresponds to th
 
 There are many use cases where you compress your data only once but decompress it much more often. For example, you can compress and store a file that will need to be read many times in the future. In that case it's very useful to spend the CPU resources on compressing at a higher setting. It will give you higher decompression speeds during reads and the compressed data will occupy less space.
 
-Also, when operating from a disk that has a lower speed than the (de-)compression algorithm, compression can really help. For those cases, compression will actually increase the total transfer speed because (much) less data has to be moved to or from the disk. This is also the main reason why _fst_ is able to serialize a dataset at higher speeds than the physical limits of a drive.
+Also, when operating from a disk that has a lower speed than the (de-)compression algorithm, compression can really help. For those cases, compression will actually increase the total transfer speed because (much) less data has to be moved to or from the disk. This is also the main reason why _fst_ is able to serialize a data set at higher speeds than the physical limits of a drive.
 
-(Please take a look at [this post](/2017/12/fst_0.8.0/) to get an idea of how that works exactly)
+(Please take a look at [this post](/2018/01/fst_0.8.0/) to get an idea of how that works exactly)
 
 
 # Benchmark code
@@ -185,3 +187,5 @@ for (level in 10 * 0:10) {
 ```
 
 This creates a _data.table_ with compression and decompression benchmark results.
+
+> _This post is also available on [R-bloggers](https://www.r-bloggers.com/)_
