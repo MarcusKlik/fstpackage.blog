@@ -68,7 +68,7 @@ CheckBaseURL <- function() {
   
 
   if (current_branch == "master") {
-    if (regexpr("http://blog.fstpackage.org", baseLine, fixed = TRUE) == -1) {
+    if (regexpr("https://blog.fstpackage.org", baseLine, fixed = TRUE) == -1) {
       stop("Wrong baseURL for this branch!")
     }
 
