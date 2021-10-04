@@ -2,7 +2,7 @@
 title: "Multi-threaded hashing with xxHash from R"
 author: "Mark Klik"
 date: '2018-01-10'
-coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515588830/electronics_p9f4uo.jpg
+coverImage: https://res.cloudinary.com/dbji2rjvf/image/upload/v1515588830/electronics_p9f4uo.jpg
 editor_options:
   chunk_output_type: console
 metaAlignment: center
@@ -11,7 +11,7 @@ tags:
 - fst package
 - hashing
 - benchmark
-thumbnailImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515407395/fingerprint_ecpfcq.jpg
+thumbnailImage: https://res.cloudinary.com/dbji2rjvf/image/upload/v1515407395/fingerprint_ecpfcq.jpg
 thumbnailImagePosition: left
 categories:
 - R
@@ -35,14 +35,14 @@ cat("<!-- toc -->\n\n")
 
 Hashing is used to map data of any size to data of a (usually much smaller) fixed size. That's very useful for creating fast lookup tables, a digital data signature or in cryptography. The _fst_ package hashes all meta-data that is stored in the _fst_ format and will support optional hashing of columnar data as well in the near future. Storing hashes in the format greatly adds to the security and stability as errors in the format can easily be detected by comparing hashes.
 
-For hashing in _fst_ the excellent and speedy [xxHash](http://cyan4973.github.io/xxHash/) algorithm is used, developed by Yann Collet. Method _hash\_fst_ provides direct access to the xxHash library and also includes a multi-threaded variant that hashes at extreme speeds.
+For hashing in _fst_ the excellent and speedy [xxHash](https://cyan4973.github.io/xxHash/) algorithm is used, developed by Yann Collet. Method _hash\_fst_ provides direct access to the xxHash library and also includes a multi-threaded variant that hashes at extreme speeds.
 
 # Multi-threaded hashing
 
 To demonstrate the _hash\_fst_ interface, we use a 93 MB file downloaded [from Kaggle](https://www.kaggle.com/stackoverflow/so-survey-2017).
 
 ```{r}
-# file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017
+# file downloaded from https://www.kaggle.com/stackoverflow/so-survey-2017 (~90 MB)
 sample_file <- "survey_results_public.csv"
 raw_vec <- readBin(sample_file, "raw", file.size(sample_file))  # read byte contents 
 
@@ -67,6 +67,8 @@ hash_timings <- readRDS("hash_bench.rds")
 ```
 
 ```{r, eval = FALSE}
+library(microbenchmark)
+
 threads_fst(8)
 
 hash_timing <- microbenchmark(

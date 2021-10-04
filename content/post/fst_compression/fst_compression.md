@@ -2,7 +2,7 @@
 title: "Multi-threaded LZ4 and ZSTD compression from R"
 author: "Mark Klik"
 date: '2018-01-10'
-coverImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515406380/space_coast_pf4huz.jpg
+coverImage: https://res.cloudinary.com/dbji2rjvf/image/upload/v1515406380/space_coast_pf4huz.jpg
 editor_options:
   chunk_output_type: console
 metaAlignment: center
@@ -10,7 +10,7 @@ slug: fst_compression
 tags:
 - fst package
 - compression
-thumbnailImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1515407346/compression_h1yrsu.jpg
+thumbnailImage: https://res.cloudinary.com/dbji2rjvf/image/upload/v1515407346/compression_h1yrsu.jpg
 thumbnailImagePosition: left
 categories:
 - R
@@ -26,7 +26,7 @@ The _fst_ package uses LZ4 and ZSTD to compress columnar data. In the latest rel
 
 # LZ4 and ZSTD
 
-[LZ4](http://lz4.github.io/lz4/) is one of the fastest compressors around, and like all LZ77-type compressors, decompression is even faster. The _fst_ package uses LZ4 to compress and decompress data when lower compression levels are selected (in method _write\_fst_). For higher compression levels, the [ZSTD](https://github.com/facebook/zstd) compressor is used, which offers superior compression ratio's but requires more CPU resources.
+[LZ4](https://lz4.github.io/lz4/) is one of the fastest compressors around, and like all LZ77-type compressors, decompression is even faster. The _fst_ package uses LZ4 to compress and decompress data when lower compression levels are selected (in method _write\_fst_). For higher compression levels, the [ZSTD](https://github.com/facebook/zstd) compressor is used, which offers superior compression ratio's but requires more CPU resources.
 
 # How to use LZ4 and ZSTD from the _fst_ package
 
@@ -56,7 +56,7 @@ file.size(sample_file) / file.size(compressed_file)
 ```
 
 ```
-## [1] 8.949609
+## [1] 8.960987
 ```
 
 using a ZSTD compression level of 20 percent, the contents of the _csv_ file are compressed to about 11 percent of the original size (calculated as the inverse of the compression ratio). To decompress the generated compressed file again you can do:

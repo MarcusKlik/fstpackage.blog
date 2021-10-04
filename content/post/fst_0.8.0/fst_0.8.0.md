@@ -12,7 +12,7 @@ tags:
 - serialization
 - fst package
 - benchmark
-thumbnailImage: http://res.cloudinary.com/dbji2rjvf/image/upload/v1512862863/parallel2_i7p1pu.png
+thumbnailImage: https://res.cloudinary.com/dbji2rjvf/image/upload/v1512862863/parallel2_i7p1pu.png
 thumbnailImagePosition: left
 categories:
 - R
@@ -152,10 +152,10 @@ as.numeric(file.size("sampleset.fst") / object.size(df))
 ```
 
 ```
-## [1] 0.3007902
+## [1] 0.3087935
 ```
 
-The file size is about 30 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
+The file size is about 31 percent of the original in-memory data frame size, the result of using a default compression setting of 50 percent. Apart from the resulting speed increase, smaller files are also attractive from a storage point of view.
 
 
 # Multi-threading
@@ -218,7 +218,7 @@ These measurements were performed on a Xeon E5 CPU machine (@2.5GHz) that has 20
 
 # Per-column compression optimalization
 
-The _fst_ package uses the excellent [LZ4](http://lz4.github.io/lz4/) compressor for high speed compression at lower ratio's and the [ZSTD](http://facebook.github.io/zstd/) compressor for medium speed compression at higher ratio's. Compression is done on small (16kB) blocks of data, which allows for (almost) random access of data. Each column uses it's own compression scheme and different compressors can be mixed within a single column. This flexible setup allows for better optimized and faster compression of data.
+The _fst_ package uses the excellent [LZ4](https://lz4.github.io/lz4/) compressor for high speed compression at lower ratio's and the [ZSTD](https://facebook.github.io/zstd/) compressor for medium speed compression at higher ratio's. Compression is done on small (16kB) blocks of data, which allows for (almost) random access of data. Each column uses it's own compression scheme and different compressors can be mixed within a single column. This flexible setup allows for better optimized and faster compression of data.
 
 > Note: there is still much work to be done to further optimize these compression schemes. The current version of the _fst_ package is using 'best (first) guess schemes'. Following more elaborate benchmarks in the future, these schemes will be fine-tuned for better performance and new compressors could also be added (such as dictionary based compressors optimized for text or bit-packing compressors for integers).
 

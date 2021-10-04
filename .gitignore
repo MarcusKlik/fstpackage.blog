@@ -11,3 +11,5 @@ blogs/large/E.coli
 /blogs/fst_0.8.0/sampleset.fst
 *.fsc
 /blogs/sampleset.fst
+/blogs/fst_0.8.0/*.html
+/blogs/fst_compression/*.html
